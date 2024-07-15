@@ -1,0 +1,9 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+SS14.MaintainerBot.sln.DotSettings.user
+appsettings.Secret.*
+data/
+.idea/.idea.SS14.MaintainerBot/.idea/discord.xml

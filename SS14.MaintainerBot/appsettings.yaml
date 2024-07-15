@@ -1,0 +1,27 @@
+Serilog:
+  Using: [ "Serilog.Sinks.Console", "Sentry.Serilog" ]
+  MinimumLevel:
+    Default: "Information"
+    Override:
+      SS14: "Information"
+      Microsoft: "Warning"
+      Microsoft.Hosting.Lifetime: "Information"
+      Microsoft.AspNetCore: "Warning"
+      Microsoft.AspNetCore.DataProtection: "Error" #This service doesn't use data protection
+
+  WriteTo:
+    - Name: Sentry
+    - Name: Console
+      Args:
+        OutputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext}] {Message:lj}{NewLine}{Exception}"
+
+  Enrich: [ "FromLogContext" ]
+
+AllowedHosts: "*"
+
+Github:
+  AppName: "SS14.MaintainerBot"
+  TemplateLocation: "Resources/Templates"
+  
+Server:
+  Language: "en-US"

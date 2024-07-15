@@ -1,0 +1,16 @@
+Serilog:
+  Using: [ "Serilog.Sinks.Console" ]
+  MinimumLevel:
+    Default: Verbose #Information
+    Override:
+      SS14: Verbose
+    
+DetailedErrors: true
+ConnectionStrings:
+  default: "Server=127.0.0.1;Port=5432;Database=maintainer_bot;User Id=postgres;Password=postgres;"
+  
+Server:
+  CorsOrigins:
+    - "http://localhost:5294"
+    - "https://localhost:7266"
+  Language: "en-US"
