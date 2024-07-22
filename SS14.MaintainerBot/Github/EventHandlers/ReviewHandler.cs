@@ -2,6 +2,7 @@
 using JetBrains.Annotations;
 using Octokit;
 using SS14.MaintainerBot.Github.Events;
+using SS14.MaintainerBot.Github.Helpers;
 
 namespace SS14.MaintainerBot.Github.EventHandlers;
 
@@ -9,6 +10,13 @@ namespace SS14.MaintainerBot.Github.EventHandlers;
 public class ReviewHandler : IEventHandler<ReviewEvent>
 {
     private const string DismissedAction = "dismissed";
+
+    private readonly PrVerificationService _verificationService;
+
+    public ReviewHandler(PrVerificationService verificationService)
+    {
+        _verificationService = verificationService;
+    }
 
     public async Task HandleAsync(ReviewEvent eventModel, CancellationToken ct)
     {
@@ -19,15 +27,16 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (eventModel.Review.State.Value)
         {
-            case PullRequestReviewState.Approved: await OnPrApproved(eventModel.Review, ct); break;
+            case PullRequestReviewState.Approved: await OnPrApproved(eventModel, ct); break;
             case PullRequestReviewState.ChangesRequested: await OnPrChangesRequested(eventModel.Review, ct); break;
         }
     }
 
-    private async Task OnPrApproved(PullRequestReview eventModelReview, CancellationToken ct)
+    private async Task OnPrApproved(ReviewEvent eventModel, CancellationToken ct)
     {
+        if (!_verificationService.CheckGeneralRequirements(eventModel.PullRequest))
+            return;
         
-        // TODO: Check Pull request requirements
         // TODO: If configured to create messages and threads on approval instead of pr opening. Post them
         // TODO: Update PR in DB
         // TODO: Post or update PR comment

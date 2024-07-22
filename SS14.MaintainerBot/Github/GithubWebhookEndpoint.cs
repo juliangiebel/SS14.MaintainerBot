@@ -59,7 +59,6 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
         
         IEvent? githubEvent = eventName[0] switch
         {
-            "push" => serializer.Deserialize<PushEvent>(json),
             "pull_request" => serializer.Deserialize<PullRequestEvent>(json),
             "pull_request_review" => DeserializeReview(json, serializer),
             _ => null

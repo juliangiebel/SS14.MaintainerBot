@@ -4,7 +4,7 @@ namespace SS14.MaintainerBot.Github.Helpers;
 
 public class PrVerificationService
 {
-    private readonly GithubBotConfiguration _configuration;
+    private readonly GithubBotConfiguration _configuration = new();
 
     public PrVerificationService(IConfiguration configuration)
     {
@@ -13,6 +13,8 @@ public class PrVerificationService
 
     public bool CheckGeneralRequirements(PullRequest pullRequest)
     {
-        
+
+        // TODO: Implement checking configured requirements
+        return true;
     }
 }

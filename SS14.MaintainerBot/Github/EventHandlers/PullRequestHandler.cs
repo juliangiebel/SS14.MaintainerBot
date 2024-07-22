@@ -1,12 +1,20 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
 using SS14.MaintainerBot.Github.Events;
+using SS14.MaintainerBot.Github.Helpers;
 
 namespace SS14.MaintainerBot.Github.EventHandlers;
 
 [UsedImplicitly]
 public class PullRequestHandler : IEventHandler<PullRequestEvent>
 {
+    private readonly PrVerificationService _verificationService;
+
+    public PullRequestHandler(PrVerificationService verificationService)
+    {
+        _verificationService = verificationService;
+    }
+
     public async Task HandleAsync(PullRequestEvent eventModel, CancellationToken ct)
     {
         // TODO: edited?, labeled?, unlabeled?, reopened(same handler method as opened?)?,
@@ -19,7 +27,8 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     
     private async Task OnPullRequestOpened(PullRequestEvent eventModel, CancellationToken ct)
     {
-        // TODO: Implement checking configured general pull request requirements
+        if (!_verificationService.CheckGeneralRequirements(eventModel.PullRequest))
+            return;
         
         // TODO: Store PR in DB
         
