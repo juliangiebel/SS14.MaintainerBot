@@ -3,7 +3,6 @@ using JetBrains.Annotations;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Events;
-using SS14.MaintainerBot.Github.Helpers;
 using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Github.Types;
 using SS14.MaintainerBot.Models.Types;

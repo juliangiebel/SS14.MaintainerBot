@@ -24,10 +24,10 @@ public class ProcessStatusChangeHandler : IEventHandler<MergeProcessStatusChange
         var template = eventModel.MergeProcess.Status switch
         {
             MergeProcessStatus.Scheduled => _configuration.MergeProcessStartedCommentTemplate,
-            MergeProcessStatus.Merging => "merging", // TODO: merging template
-            MergeProcessStatus.Merged => "merged", // TODO: merged template
+            MergeProcessStatus.Merging => _configuration.MergeProcessMergingCommentTemplate,
+            MergeProcessStatus.Merged => _configuration.MergeProcessMergedCommentTemplate,
             MergeProcessStatus.Interrupted => _configuration.MergeProcessStoppedCommentTemplate,
-            MergeProcessStatus.Failed => "failed", // TODO: failed template
+            MergeProcessStatus.Failed => _configuration.MergeProcessFailedCommentTemplate,
             MergeProcessStatus.Closed => _configuration.MergeProcessPrClosedCommentTemplate,
             _ => throw new ArgumentOutOfRangeException()
         };

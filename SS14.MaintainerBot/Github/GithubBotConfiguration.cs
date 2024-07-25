@@ -45,6 +45,10 @@ public sealed class GithubBotConfiguration
     /// </summary>
     public string MergeProcessStoppedCommentTemplate { get; set; } = "process_stopped.liquid";
 
+    public string MergeProcessMergingCommentTemplate { get; set; } = "process_merging.liquid";
+    public string MergeProcessMergedCommentTemplate { get; set; } = "process_merged.liquid";
+    public string MergeProcessFailedCommentTemplate { get; set; } = "process_failed.liquid";
+    
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
@@ -57,4 +61,5 @@ public sealed class GithubBotConfiguration
     public bool ProcessUnapprovedPrs { get; set; } = true;
 
     public PullRequestMergeMethod MergeMethod { get; set; } = PullRequestMergeMethod.Squash;
+
 }
