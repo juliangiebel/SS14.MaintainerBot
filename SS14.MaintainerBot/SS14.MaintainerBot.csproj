@@ -30,7 +30,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Discord\DiscordCommands\" />
       <Folder Include="Services\" />
     </ItemGroup>
 

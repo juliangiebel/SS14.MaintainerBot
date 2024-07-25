@@ -7,6 +7,8 @@ using Serilog;
 using SS14.GithubApiHelper.Extensions;
 using SS14.GithubApiHelper.Services;
 using SS14.MaintainerBot.Configuration;
+using SS14.MaintainerBot.Discord;
+using SS14.MaintainerBot.Discord.DiscordCommands;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Helpers;
 using SS14.MaintainerBot.Models;
@@ -74,8 +76,14 @@ builder.Services.AddFastEndpoints().SwaggerDocument();
 builder.Services.AddSingleton<RateLimiterService>();
 
 // Github
+builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
+builder.Services.AddScoped<GithubDbRepository>();
 builder.Services.AddSingleton<GithubApiService>();
 builder.Services.AddGithubTemplating();
+
+//Discord
+builder.Services.AddDiscordClient();
+builder.Services.AddSingleton<ManagementModule>();
 
 #endregion
 

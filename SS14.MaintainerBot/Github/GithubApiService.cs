@@ -5,7 +5,7 @@ using ILogger = Serilog.ILogger;
 
 namespace SS14.MaintainerBot.Github;
 
-public class GithubApiService : AbstractGithubApiService
+public sealed class GithubApiService : AbstractGithubApiService
 {
     private readonly GithubTemplateService _templateService;
 
@@ -18,6 +18,42 @@ public class GithubApiService : AbstractGithubApiService
         _templateService = templateService;
         configuration.Bind(ServerConfiguration.Name, _serverConfiguration);
         _log = Log.ForContext<GithubApiService>();
+    }
+    
+    public async Task<long?> CreateCommentWithTemplate(InstallationIdentifier installation, int issueId, string templateName, object? model)
+    {
+        if (!await CheckRateLimit(installation))
+            return null;
+
+        var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
+        var body = await _templateService.RenderTemplate(templateName, model, _serverConfiguration.Language);
+        var comment = await client.Issue.Comment.Create(installation.RepositoryId, issueId, body);
+
+        if (comment != null)
+            return comment.Id;
+
+        _log.Error("Failed to create comment on repository with id {Repo} and issue {IssueId}",
+            installation.RepositoryId,
+            $"#{issueId}");
+
+        return null;
+    }
+
+    public async Task UpdateCommentWithTemplate(InstallationIdentifier installation, int issueId, long commentId, string templateName, object? model)
+    {
+        if (!await CheckRateLimit(installation))
+            return;
+
+        var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
+        var body = await _templateService.RenderTemplate(templateName, model, _serverConfiguration.Language);
+        var comment = await client.Issue.Comment.Update(installation.RepositoryId, issueId, body);
+
+        if (comment != null)
+            return;
+
+        _log.Error("Failed to create comment on repository with id {Repo} and issue {IssueId}",
+            installation.RepositoryId,
+            $"#{issueId}");
     }
     
     private async Task<bool> CheckRateLimit(InstallationIdentifier installation)

@@ -1,6 +1,6 @@
 ﻿namespace SS14.MaintainerBot.Github;
 
-public class GithubBotConfiguration
+public sealed class GithubBotConfiguration
 {
     public const string Name = "GithubBot";
 
@@ -21,4 +21,19 @@ public class GithubBotConfiguration
     /// Multiple repository support can be added later when needed
     /// </remarks>
     public string RepositoryUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether to post a comment on newly opened PRs.
+    /// </summary>
+    public bool SendIntroductoryComment { get; set; }
+
+    /// <summary>
+    /// The template to use for the introductory comment
+    /// </summary>
+    public string IntroductoryCommentTemplate { get; set; } = "pr_intro.liquid";
+
+    /// <summary>
+    /// Whether to start a discourse thread and post a discord message when a PR gets oppened instead of first approval
+    /// </summary>
+    public bool ProcessUnapprovedPrs { get; set; } = true;
 }

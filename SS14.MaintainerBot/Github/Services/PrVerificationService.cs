@@ -17,4 +17,10 @@ public class PrVerificationService
         // TODO: Implement checking configured requirements
         return true;
     }
+
+    public bool CheckProcessingRequirements(PullRequest pullRequest)
+    {
+        // TODO: Implement checking configured processing requirements
+        return true;
+    }
 }

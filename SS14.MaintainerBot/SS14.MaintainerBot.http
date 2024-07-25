@@ -1,6 +1,0 @@
-@SS14.MaintainerBot_HostAddress = http://localhost:5294
-
-GET {{SS14.MaintainerBot_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
