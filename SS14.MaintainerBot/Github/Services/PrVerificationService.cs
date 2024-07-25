@@ -1,6 +1,6 @@
 ﻿using Octokit;
 
-namespace SS14.MaintainerBot.Github.Helpers;
+namespace SS14.MaintainerBot.Github.Services;
 
 public class PrVerificationService
 {

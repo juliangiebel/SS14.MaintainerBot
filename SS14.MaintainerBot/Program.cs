@@ -76,14 +76,14 @@ builder.Services.AddFastEndpoints().SwaggerDocument();
 builder.Services.AddSingleton<RateLimiterService>();
 
 // Github
-builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
+//builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
 builder.Services.AddScoped<GithubDbRepository>();
 builder.Services.AddSingleton<GithubApiService>();
 builder.Services.AddGithubTemplating();
 
 //Discord
-builder.Services.AddDiscordClient();
-builder.Services.AddSingleton<ManagementModule>();
+//builder.Services.AddDiscordClient();
+//builder.Services.AddSingleton<ManagementModule>();
 
 #endregion
 
@@ -115,7 +115,7 @@ if ((app.Environment.IsProduction() || app.Environment.IsStaging()) && serverCon
 
 app.UseCors();
 
-await app.PreloadGithubTemplates();
+//await app.PreloadGithubTemplates();
 
 if (serverConfiguration is { EnableSentry: true, EnableSentryTracing: true })
     app.UseSentryTracing();

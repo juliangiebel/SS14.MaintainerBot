@@ -14,8 +14,11 @@ public class Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        builder.Entity<MergeProcess>();
-
+        builder.Entity<MergeProcess>()
+            .HasOne(e => e.PullRequest)
+            .WithOne()
+            .HasForeignKey<MergeProcess>(e => e.PullRequestId);
+            
         builder.Entity<PullRequest>()
             .HasMany(e => e.Comments)
             .WithOne()

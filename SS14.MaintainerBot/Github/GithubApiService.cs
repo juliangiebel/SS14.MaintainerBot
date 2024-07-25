@@ -1,6 +1,8 @@
-﻿using SS14.GithubApiHelper.Exceptions;
+﻿using Octokit;
+using SS14.GithubApiHelper.Exceptions;
 using SS14.GithubApiHelper.Services;
 using SS14.MaintainerBot.Configuration;
+using SS14.MaintainerBot.Github.Types;
 using ILogger = Serilog.ILogger;
 
 namespace SS14.MaintainerBot.Github;
@@ -66,5 +68,29 @@ public sealed class GithubApiService : AbstractGithubApiService
             throw new RateLimitException($"Hit rate limit for repository with id: {installation.RepositoryId}");
 
         return true;
+    }
+
+    public async Task<bool> MergePullRequest(
+        InstallationIdentifier installation,
+        int pullRequestNumber,
+        PullRequestMergeMethod mergeMethod,
+        string? commitTitle = null,
+        string? commitMessage = null
+        )
+    {
+        if (!await CheckRateLimit(installation))
+            return false;
+
+        var mergePullRequest = new MergePullRequest
+        {
+            MergeMethod = mergeMethod,
+            CommitTitle = commitTitle,
+            CommitMessage = commitMessage
+        };
+        
+        var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
+        var merge = await client.PullRequest.Merge(installation.RepositoryId, pullRequestNumber, mergePullRequest);
+        
+        return merge.Merged;
     }
 }

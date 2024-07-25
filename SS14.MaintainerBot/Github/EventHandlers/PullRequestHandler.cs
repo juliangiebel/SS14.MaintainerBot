@@ -1,10 +1,12 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
-using Octokit;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Helpers;
+using SS14.MaintainerBot.Github.Services;
+using SS14.MaintainerBot.Github.Types;
+using SS14.MaintainerBot.Models.Types;
 using PullRequest = SS14.MaintainerBot.Github.Entities.PullRequest;
 
 namespace SS14.MaintainerBot.Github.EventHandlers;
@@ -16,18 +18,14 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly PrVerificationService _verificationService;
-    private readonly GithubApiService _githubApiService;
     
     public PullRequestHandler(
         IServiceScopeFactory scopeFactory,
         IConfiguration configuration, 
-        PrVerificationService verificationService, 
-        GithubDbRepository dbRepository, 
-        GithubApiService githubApiService)
+        PrVerificationService verificationService)
     {
         configuration.Bind(GithubBotConfiguration.Name, _configuration);
         _verificationService = verificationService;
-        _githubApiService = githubApiService;
         _scopeFactory = scopeFactory;
     }
 
@@ -51,15 +49,19 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     /// <param name="eventModel"></param>
     /// <param name="dbRepository"></param>
     /// <param name="ct"></param>
-    private async Task OnPullRequestSynced(PullRequestEvent eventModel, GithubDbRepository dbRepository,
-        CancellationToken ct)
+    private async Task OnPullRequestSynced(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
     {
         var pullRequest = await dbRepository.TryGetPullRequest(eventModel.Repository.Id, eventModel.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
-        
-        // TODO: Interrupt workflow
 
+        var changeStatusCommand = new ChangeMergeProcessStatus(
+            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            pullRequest.Number,
+            MergeProcessStatus.Interrupted
+        );
+
+        await changeStatusCommand.ExecuteAsync(ct);
     }
 
     private async Task OnPullRequestOpened(PullRequestEvent eventModel, GithubDbRepository dbRepository,
@@ -106,16 +108,17 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
 
         pullRequest.Status = PullRequestStatus.Closed;
         dbRepository.DbContext.PullRequest!.Update(pullRequest);
-
-        // TODO: Stop merge workflow if present
-
-        // TODO: Update PR comment
-
         await dbRepository.DbContext.SaveChangesAsync(ct);
 
-        // TODO: Send discourse and discord message
-    }
+        var changeStatusCommand = new ChangeMergeProcessStatus(
+            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            pullRequest.Number,
+            MergeProcessStatus.Closed
+        );
 
+        await changeStatusCommand.ExecuteAsync(ct);
+    }
+    
     private async Task PostIntroductoryComment(PullRequest pullRequest, bool isProcessed, GithubDbRepository dbRepository, CancellationToken ct)
     {
         var hasComment = await dbRepository.HasCommentsOfType(pullRequest.Id, PrCommentType.Introduction, ct);

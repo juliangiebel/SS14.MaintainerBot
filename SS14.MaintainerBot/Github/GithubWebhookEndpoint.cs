@@ -5,6 +5,7 @@ using Octokit.Internal;
 using SS14.GithubApiHelper.Helpers;
 using SS14.MaintainerBot.Configuration;
 using SS14.MaintainerBot.Github.Events;
+using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Github;
 

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using Octokit;
+using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Github.Entities;
 

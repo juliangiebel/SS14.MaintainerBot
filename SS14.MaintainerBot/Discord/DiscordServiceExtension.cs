@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 
 namespace SS14.MaintainerBot.Discord;
@@ -20,8 +21,9 @@ public static class DiscordServiceExtension
         
         collection.AddSingleton(config);
         collection.AddSingleton<DiscordSocketClient>();
-        collection.AddSingleton(interactionConfig);
-        collection.AddSingleton<InteractionService>();
+        //collection.AddSingleton<DiscordRestClient>(s => s.GetService<DiscordSocketClient>()!.Rest);
+        //collection.AddSingleton(interactionConfig);
+        //collection.AddSingleton<InteractionService>();
         collection.AddSingleton<DiscordClientService>();
     }
 }

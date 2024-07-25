@@ -1,4 +1,7 @@
-﻿namespace SS14.MaintainerBot.Github;
+﻿using Octokit;
+using SS14.MaintainerBot.Github.Types;
+
+namespace SS14.MaintainerBot.Github;
 
 public sealed class GithubBotConfiguration
 {
@@ -31,9 +34,27 @@ public sealed class GithubBotConfiguration
     /// The template to use for the introductory comment
     /// </summary>
     public string IntroductoryCommentTemplate { get; set; } = "pr_intro.liquid";
+    
+    /// <summary>
+    /// The template to use for the introductory comment
+    /// </summary>
+    public string MergeProcessStartedCommentTemplate { get; set; } = "process_started.liquid";
+    
+    /// <summary>
+    /// The template to use for the introductory comment
+    /// </summary>
+    public string MergeProcessStoppedCommentTemplate { get; set; } = "process_stopped.liquid";
 
+    /// <summary>
+    /// The template to use for the introductory comment
+    /// </summary>
+    public string MergeProcessPrClosedCommentTemplate { get; set; } = "process_closed.liquid";
+
+    
     /// <summary>
     /// Whether to start a discourse thread and post a discord message when a PR gets oppened instead of first approval
     /// </summary>
     public bool ProcessUnapprovedPrs { get; set; } = true;
+
+    public PullRequestMergeMethod MergeMethod { get; set; } = PullRequestMergeMethod.Squash;
 }
