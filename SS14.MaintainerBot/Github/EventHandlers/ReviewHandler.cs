@@ -39,7 +39,6 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         
         if (eventModel.Action == DismissedAction)
             return;
-        
 
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (eventModel.Review.State.Value)
@@ -54,11 +53,23 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         if (!_verificationService.CheckGeneralRequirements(eventModel.PullRequest))
             return;
         
-        // TODO: If configured to create messages and threads on approval instead of pr opening. Post them
-        // TODO: Update PR in DB
-        // TODO: Post or update PR comment
-        // TODO: Start PR merge timer
-        throw new NotImplementedException();
+        var pullRequest = await dbRepository.TryGetPullRequest(eventModel.Repository.Id, eventModel.PullRequest.Number, ct);
+        if (pullRequest is null or {Status: PullRequestStatus.Closed} or {Status: PullRequestStatus.Approved})
+            return;
+
+        pullRequest.Status = PullRequestStatus.Approved;
+        dbRepository.DbContext.Update(pullRequest);
+
+        await dbRepository.DbContext.SaveChangesAsync(ct);
+        
+        var command = new CreateMergeProcess(
+            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            eventModel.PullRequest.Number,
+            MergeProcessStatus.Scheduled,
+            _configuration.MergeDelay
+        );
+
+        await command.ExecuteAsync(ct);
     }
     
     private async Task OnPrChangesRequested(ReviewEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
@@ -70,7 +81,7 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         var changeStatusCommand = new ChangeMergeProcessStatus(
             new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
             pullRequest.Number,
-            MergeProcessStatus.Closed
+            MergeProcessStatus.Interrupted
         );
 
         await changeStatusCommand.ExecuteAsync(ct);

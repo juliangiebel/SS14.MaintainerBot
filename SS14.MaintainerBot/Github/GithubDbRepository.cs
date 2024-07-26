@@ -74,6 +74,10 @@ public sealed class GithubDbRepository
             return null;
 
         process.Status = status;
+
+        if (status == MergeProcessStatus.Scheduled)
+            process.StartedOn = DateTime.Now;
+        
         DbContext.Update(process);
         return process;
     }

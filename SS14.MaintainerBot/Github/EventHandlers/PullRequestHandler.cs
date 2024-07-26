@@ -33,7 +33,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
         
-        // TODO: edited?, labeled?, unlabeled?, reopened(same handler method as opened?)?,
+        // TODO: labeled?, unlabeled?, reopened(same handler method as opened?)?,
         switch (eventModel.Action)
         {
             case "opened": await OnPullRequestOpened(eventModel, dbRepository, ct); break;
@@ -75,7 +75,6 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         
         pullRequest ??= new PullRequest
         {
-            Approvals = 0,
             Number = eventModel.Number,
             GhRepoId = eventModel.Repository.Id,
         };

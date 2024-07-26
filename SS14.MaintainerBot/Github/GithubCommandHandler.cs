@@ -85,7 +85,19 @@ public sealed class GithubCommandHandler :
         CreateOrUpdateComment command,
         CancellationToken ct)
     {
-        return null;
+        if (ct.IsCancellationRequested)
+            return null;
+        
+        
+        await _githubApiService.UpdateCommentWithTemplate(
+            command.InstallationIdentifier,
+            command.PullRequestNumber,
+            lastComment.CommentId,
+            templateName: command.TemplateName, 
+            model: command.Model
+        );
+        
+        return lastComment;
     }
 
     public async Task<MergeProcess?> ExecuteAsync(CreateMergeProcess command, CancellationToken ct)
