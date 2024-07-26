@@ -12,6 +12,7 @@ using SS14.MaintainerBot.Discord.DiscordCommands;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Helpers;
 using SS14.MaintainerBot.Models;
+using SS14.MaintainerBot.Scheduler;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,16 +82,16 @@ builder.Services.AddScoped<GithubDbRepository>();
 builder.Services.AddSingleton<GithubApiService>();
 builder.Services.AddGithubTemplating();
 
-//Discord
+// Discord
 //builder.Services.AddDiscordClient();
 //builder.Services.AddSingleton<ManagementModule>();
 
+// Scheduler
+builder.Services.AddScheduler();
+
 #endregion
 
-
 var app = builder.Build();
-
-Log.Information("Environment: {Environment}", builder.Environment.EnvironmentName);
 
 //Migrate on startup
 new StartupMigrationHelper().Migrate<Context>(app);
@@ -127,4 +128,5 @@ if (app.Environment.IsDevelopment())
     endpoints.UseSwaggerGen();
 }
 
+app.ScheduleMarkedJobs();
 app.Run();

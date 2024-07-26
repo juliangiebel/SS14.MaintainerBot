@@ -7,3 +7,4 @@
 - [Discord.net](https://docs.discordnet.dev/index.html)
 - [Fluid](https://github.com/sebastienros/fluid)
 - [Sentry SDK](https://docs.sentry.io/platforms/dotnet/guides/aspnetcore/)
+- [Quartz.net](https://www.quartz-scheduler.net/)

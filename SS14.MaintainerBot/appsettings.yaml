@@ -25,3 +25,7 @@ Github:
   
 Server:
   Language: "en-US"
+  
+Scheduler:
+  MergeProcessCron: "0 0 2 * * ?" # Daily at 2 am
+  
