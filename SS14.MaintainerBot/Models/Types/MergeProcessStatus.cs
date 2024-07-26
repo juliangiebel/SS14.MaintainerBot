@@ -3,7 +3,12 @@
 public enum MergeProcessStatus
 {
     /// <summary>
-    /// Merging the PR is scheduled and it'll be merged once the merge delay has passed
+    /// The process was created but hasn't been started yet
+    /// </summary>
+    NotStarted,
+    
+    /// <summary>
+    /// Merging the PR is scheduled, and it'll be merged once the merge delay has passed
     /// </summary>
     Scheduled,
     

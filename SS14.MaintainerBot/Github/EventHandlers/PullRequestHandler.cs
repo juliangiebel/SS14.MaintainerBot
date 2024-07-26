@@ -93,9 +93,14 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         if (!processed)
             return;
 
-        // new DiscordSendMessageCommand...
-        // new DiscourseCreateThreadCommand...
-        // TODO: If PR should be processed create a discourse thread and a discord message
+        var command = new CreateMergeProcess(
+            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            pullRequest.Number,
+            MergeProcessStatus.NotStarted,
+            _configuration.MergeDelay
+        );
+
+        await command.ExecuteAsync(ct);
     }
     
     private async Task OnPullRequestClosed(PullRequestEvent eventModel, GithubDbRepository dbRepository,

@@ -14,6 +14,7 @@ public sealed class GithubCommandHandler :
     ICommandHandler<CreateOrUpdateComment, PullRequestComment?>, 
     ICommandHandler<GetPullRequest, Guid>,
     ICommandHandler<MergePullRequest, bool>,
+    ICommandHandler<CreateMergeProcess, MergeProcess?>,
     ICommandHandler<ChangeMergeProcessStatus, MergeProcess?>
 {
     private readonly GithubApiService _githubApiService;
@@ -87,6 +88,31 @@ public sealed class GithubCommandHandler :
         return null;
     }
 
+    public async Task<MergeProcess?> ExecuteAsync(CreateMergeProcess command, CancellationToken ct)
+    {
+        var mergeProcess = await _dbRepository.CreateMergeProcessForPr(
+            command.Installation.RepositoryId,
+            command.PullRequestNumber,
+            command.Status,
+            command.MergeDelay,
+            ct);
+
+        await _dbRepository.DbContext.SaveChangesAsync(ct);
+
+        if (mergeProcess == null)
+            return null;
+        
+        var processEvent = new MergeProcessStatusChangedEvent(
+            command.Installation,
+            command.PullRequestNumber,
+            mergeProcess
+        );
+
+        await processEvent.PublishAsync(Mode.WaitForNone, ct);
+        
+        return mergeProcess;
+    }
+    
     public async Task<MergeProcess?> ExecuteAsync(ChangeMergeProcessStatus command, CancellationToken ct)
     {
         var mergeProcess = await _dbRepository.SetMergeProcessStatusForPr(
@@ -106,7 +132,6 @@ public sealed class GithubCommandHandler :
             return null;
         }
 
-        // TODO: Implement subscribers for discord and dicourse message
         var statusChangedEvent = new MergeProcessStatusChangedEvent(
             command.Installation,
             command.PullRequestNumber,

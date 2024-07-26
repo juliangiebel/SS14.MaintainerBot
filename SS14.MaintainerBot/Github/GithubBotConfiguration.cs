@@ -61,5 +61,9 @@ public sealed class GithubBotConfiguration
     public bool ProcessUnapprovedPrs { get; set; } = true;
 
     public PullRequestMergeMethod MergeMethod { get; set; } = PullRequestMergeMethod.Squash;
-
+    
+    /// <summary>
+    /// The amount of time a PR is left open after it gets scheduled for merging
+    /// </summary>
+    public TimeSpan MergeDelay { get; set; } = TimeSpan.FromDays(2);
 }

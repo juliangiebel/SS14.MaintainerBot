@@ -21,7 +21,10 @@ public class ProcessStatusChangeHandler : IEventHandler<MergeProcessStatusChange
 
     public async Task HandleAsync(MergeProcessStatusChangedEvent eventModel, CancellationToken ct)
     {
-        var template = eventModel.MergeProcess.Status switch
+        if (eventModel.MergeProcess.Status == MergeProcessStatus.NotStarted)
+            return;
+        
+        var template = eventModel.MergeProcess.Status  switch
         {
             MergeProcessStatus.Scheduled => _configuration.MergeProcessStartedCommentTemplate,
             MergeProcessStatus.Merging => _configuration.MergeProcessMergingCommentTemplate,
@@ -29,6 +32,7 @@ public class ProcessStatusChangeHandler : IEventHandler<MergeProcessStatusChange
             MergeProcessStatus.Interrupted => _configuration.MergeProcessStoppedCommentTemplate,
             MergeProcessStatus.Failed => _configuration.MergeProcessFailedCommentTemplate,
             MergeProcessStatus.Closed => _configuration.MergeProcessPrClosedCommentTemplate,
+            MergeProcessStatus.NotStarted => "",
             _ => throw new ArgumentOutOfRangeException()
         };
         

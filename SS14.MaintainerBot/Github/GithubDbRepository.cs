@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Serilog;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Types;
 using SS14.MaintainerBot.Models;
@@ -37,9 +38,30 @@ public sealed class GithubDbRepository
             .AnyAsync(ct);
     }
 
-    public async Task<MergeProcess> TryGetMergeProcessForPr(long repositoryId, int pullRequestNumber, CancellationToken ct)
+    public async Task<MergeProcess?> CreateMergeProcessForPr(
+        long repositoryId, 
+        int pullRequestNumber, 
+        MergeProcessStatus status, 
+        TimeSpan mergeDelay,
+        CancellationToken ct)
     {
-        throw new NotImplementedException();
+        var pullRequest = await TryGetPullRequest(repositoryId, pullRequestNumber, ct);
+        if (pullRequest == null)
+        {
+            Log.Error("error");
+            return null;
+        }
+
+        var mergeProcess = new MergeProcess
+        {
+            PullRequestId = pullRequest.Id,
+            PullRequest = pullRequest,
+            MergeDelay = mergeDelay,
+            Status = status
+        };
+
+        DbContext.MergeProcesses!.Add(mergeProcess);
+        return mergeProcess;
     }
 
     public async Task<MergeProcess?> SetMergeProcessStatusForPr(long repositoryId, int pullRequestNumber, MergeProcessStatus status, CancellationToken ct)
