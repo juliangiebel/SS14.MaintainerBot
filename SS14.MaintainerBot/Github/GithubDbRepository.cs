@@ -76,9 +76,16 @@ public sealed class GithubDbRepository
         process.Status = status;
 
         if (status == MergeProcessStatus.Scheduled)
-            process.StartedOn = DateTime.Now;
+            process.StartedOn = DateTime.UtcNow;
         
         DbContext.Update(process);
         return process;
+    }
+
+    public async Task<bool> HasMergeProcessForPr(Guid pullRequestId, CancellationToken ct)
+    {
+        return await DbContext.MergeProcesses!
+            .Where(mp => mp.PullRequestId == pullRequestId)
+            .AnyAsync(ct);
     }
 }

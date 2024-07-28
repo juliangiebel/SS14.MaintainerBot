@@ -28,31 +28,31 @@ public sealed class GithubBotConfiguration
     /// <summary>
     /// Whether to post a comment on newly opened PRs.
     /// </summary>
-    public bool SendIntroductoryComment { get; set; }
+    public bool SendIntroductoryComment { get; set; } = true;
 
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string IntroductoryCommentTemplate { get; set; } = "pr_intro.liquid";
+    public string IntroductoryCommentTemplate { get; set; } = "pr_intro";
     
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string MergeProcessStartedCommentTemplate { get; set; } = "process_started.liquid";
+    public string MergeProcessStartedCommentTemplate { get; set; } = "process_started";
     
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string MergeProcessStoppedCommentTemplate { get; set; } = "process_stopped.liquid";
+    public string MergeProcessStoppedCommentTemplate { get; set; } = "process_stopped";
 
-    public string MergeProcessMergingCommentTemplate { get; set; } = "process_merging.liquid";
-    public string MergeProcessMergedCommentTemplate { get; set; } = "process_merged.liquid";
-    public string MergeProcessFailedCommentTemplate { get; set; } = "process_failed.liquid";
+    public string MergeProcessMergingCommentTemplate { get; set; } = "process_merging";
+    public string MergeProcessMergedCommentTemplate { get; set; } = "process_merged";
+    public string MergeProcessFailedCommentTemplate { get; set; } = "process_failed";
     
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string MergeProcessPrClosedCommentTemplate { get; set; } = "process_closed.liquid";
+    public string MergeProcessPrClosedCommentTemplate { get; set; } = "process_closed";
 
     
     /// <summary>
@@ -66,4 +66,12 @@ public sealed class GithubBotConfiguration
     /// The amount of time a PR is left open after it gets scheduled for merging
     /// </summary>
     public TimeSpan MergeDelay { get; set; } = TimeSpan.FromDays(2);
+
+    /// <summary>
+    /// The amount of approvals required before a PR gets scheduled for merging
+    /// </summary>
+    /// <remarks>
+    /// The current implementation does not prevent one person approving multiple times from triggering the merge process
+    /// </remarks>
+    public int RequiredApprovals { get; set; } = 1;
 }

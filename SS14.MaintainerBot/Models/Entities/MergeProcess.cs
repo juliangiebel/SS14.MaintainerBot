@@ -19,7 +19,7 @@ public class MergeProcess
     public Guid PullRequestId { get; set; }
 
     [Required]
-    public DateTime StartedOn { get; set; } = DateTime. Now;
+    public DateTime StartedOn { get; set; } = DateTime.UtcNow;
     
     [Required]
     public TimeSpan MergeDelay { get; set; }

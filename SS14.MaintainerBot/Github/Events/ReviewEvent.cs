@@ -3,7 +3,4 @@ using Octokit;
 
 namespace SS14.MaintainerBot.Github.Events;
 
-public class ReviewEvent : PullRequestReviewEventPayload, IEvent
-{
-    
-}
+public record ReviewEvent(PullRequestReviewEventPayload Payload) : IEvent;

@@ -34,7 +34,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         var dbRepository = scope.Resolve<GithubDbRepository>();
         
         // TODO: labeled?, unlabeled?, reopened(same handler method as opened?)?,
-        switch (eventModel.Action)
+        switch (eventModel.Payload.Action)
         {
             case "opened": await OnPullRequestOpened(eventModel, dbRepository, ct); break;
             case "closed": await OnPullRequestClosed(eventModel, dbRepository, ct); break;
@@ -50,12 +50,14 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     /// <param name="ct"></param>
     private async Task OnPullRequestSynced(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
     {
-        var pullRequest = await dbRepository.TryGetPullRequest(eventModel.Repository.Id, eventModel.PullRequest.Number, ct);
+        var payload = eventModel.Payload;
+        
+        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
 
         var changeStatusCommand = new ChangeMergeProcessStatus(
-            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
             pullRequest.Number,
             MergeProcessStatus.Interrupted
         );
@@ -63,37 +65,38 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         await changeStatusCommand.ExecuteAsync(ct);
     }
 
-    private async Task OnPullRequestOpened(PullRequestEvent eventModel, GithubDbRepository dbRepository,
-        CancellationToken ct)
+    private async Task OnPullRequestOpened(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
     {
-        if (!_verificationService.CheckGeneralRequirements(eventModel.PullRequest))
+        var payload = eventModel.Payload;
+        
+        if (!_verificationService.CheckGeneralRequirements(payload.PullRequest))
             return;
 
-        var pullRequest = await dbRepository.TryGetPullRequest(eventModel.Repository.Id, eventModel.PullRequest.Number, ct);
+        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is not null and not {Status: PullRequestStatus.Closed})
             return;
         
         pullRequest ??= new PullRequest
         {
-            Number = eventModel.Number,
-            GhRepoId = eventModel.Repository.Id,
+            InstallationId = payload.Installation.Id,
+            GhRepoId = payload.Repository.Id,
+            Number = payload.Number,
+            Status = PullRequestStatus.Open
         };
-        
-        pullRequest.Status = PullRequestStatus.Open;
 
-        var processed = _configuration.ProcessUnapprovedPrs && _verificationService.CheckProcessingRequirements(eventModel.PullRequest);
+        dbRepository.DbContext.PullRequest!.Update(pullRequest);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
+        
+        var processed = _configuration.ProcessUnapprovedPrs && _verificationService.CheckProcessingRequirements(payload.PullRequest);
         
         if (_configuration.SendIntroductoryComment)
             await PostIntroductoryComment(pullRequest, processed, dbRepository, ct);
-        
-        dbRepository.DbContext.PullRequest!.Update(pullRequest);
-        await dbRepository.DbContext.SaveChangesAsync(ct);
         
         if (!processed)
             return;
 
         var command = new CreateMergeProcess(
-            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
             pullRequest.Number,
             MergeProcessStatus.NotStarted,
             _configuration.MergeDelay
@@ -102,10 +105,11 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         await command.ExecuteAsync(ct);
     }
     
-    private async Task OnPullRequestClosed(PullRequestEvent eventModel, GithubDbRepository dbRepository,
-        CancellationToken ct)
+    private async Task OnPullRequestClosed(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
     {
-        var pullRequest = await dbRepository.TryGetPullRequest(eventModel.Repository.Id, eventModel.PullRequest.Number, ct);
+        var payload = eventModel.Payload;
+        
+        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
 
@@ -114,7 +118,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         await dbRepository.DbContext.SaveChangesAsync(ct);
 
         var changeStatusCommand = new ChangeMergeProcessStatus(
-            new InstallationIdentifier(eventModel.Installation.Id, eventModel.Repository.Id),
+            new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
             pullRequest.Number,
             MergeProcessStatus.Closed
         );

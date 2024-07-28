@@ -10,6 +10,7 @@ using SS14.MaintainerBot.Configuration;
 using SS14.MaintainerBot.Discord;
 using SS14.MaintainerBot.Discord.DiscordCommands;
 using SS14.MaintainerBot.Github;
+using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Helpers;
 using SS14.MaintainerBot.Models;
 using SS14.MaintainerBot.Scheduler;
@@ -80,6 +81,7 @@ builder.Services.AddSingleton<RateLimiterService>();
 //builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
 builder.Services.AddScoped<GithubDbRepository>();
 builder.Services.AddSingleton<GithubApiService>();
+builder.Services.AddSingleton<PrVerificationService>();
 builder.Services.AddGithubTemplating();
 
 // Discord
@@ -116,7 +118,7 @@ if ((app.Environment.IsProduction() || app.Environment.IsStaging()) && serverCon
 
 app.UseCors();
 
-//await app.PreloadGithubTemplates();
+await app.PreloadGithubTemplates();
 
 if (serverConfiguration is { EnableSentry: true, EnableSentryTracing: true })
     app.UseSentryTracing();

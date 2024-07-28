@@ -93,4 +93,11 @@ public sealed class GithubApiService : AbstractGithubApiService
         
         return merge.Merged;
     }
+
+    public async Task<CollaboratorPermissions> GetUserPermissionForRepository(InstallationIdentifier installation, User user)
+    {
+        var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
+        var response = await client.Repository.Collaborator.ReviewPermission(installation.RepositoryId, user.Login);
+        return response.Collaborator.Permissions;
+    }
 }

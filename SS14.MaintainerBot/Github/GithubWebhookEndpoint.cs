@@ -5,6 +5,7 @@ using Octokit.Internal;
 using SS14.GithubApiHelper.Helpers;
 using SS14.MaintainerBot.Configuration;
 using SS14.MaintainerBot.Github.Events;
+using SS14.MaintainerBot.Github.Helpers;
 using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Github;
@@ -60,8 +61,8 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
         
         IEvent? githubEvent = eventName[0] switch
         {
-            "pull_request" => serializer.Deserialize<PullRequestEvent>(json),
-            "pull_request_review" => DeserializeReview(json, serializer),
+            "pull_request" => await HandlePullRequest(json, serializer, ct),
+            "pull_request_review" => await HandleReview(json, serializer, ct),
             _ => null
         };
 
@@ -74,21 +75,38 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
         }
         
         Logger.LogTrace("Handled github event: {event_name}", eventName[0]);
-        
-        await PublishAsync(githubEvent, cancellation: ct);
         await SendOkAsync(ct);
     }
 
-    private ReviewEvent? DeserializeReview(string json, SimpleJsonSerializer serializer)
+    private async Task<PullRequestEvent?> HandlePullRequest(string json, SimpleJsonSerializer serializer, CancellationToken ct)
     {
-        var reviewEvent = serializer.Deserialize<ReviewEvent>(json);
-        if (reviewEvent.Action == ReviewDismissedAction)
+        var payload = serializer.Deserialize<PullRequestEventPayload>(json);
+        if (payload == null)
+            return null;
+            
+        var githubEvent = new PullRequestEvent(payload);
+        
+        await PublishAsync(githubEvent, cancellation: ct);
+        return githubEvent;
+    }
+    
+    private async Task<ReviewEvent?> HandleReview(string json, SimpleJsonSerializer serializer, CancellationToken ct)
+    {
+        var payload = serializer.Deserialize<PullRequestReviewEventPayload>(json);
+        if (payload == null)
             return null;
         
-        if (_botConfiguration.RequiresOrgMembership && reviewEvent.Review.AuthorAssociation.Value != AuthorAssociation.Member)
+        var reviewEvent = new ReviewEvent(payload);
+        if (reviewEvent.Payload.Action == ReviewDismissedAction)
+            return null;
+        
+        if (_botConfiguration.RequiresOrgMembership && reviewEvent.Payload.Review.AuthorAssociation.Value != AuthorAssociation.Member)
             return null;
 
-        if (CheckPermissions(reviewEvent.Review.User.Permissions, _botConfiguration.ReviewPermissions))
+        var installation = new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id);
+        var permissions = await _githubApiService.GetUserPermissionForRepository(installation, payload.Sender);
+        
+        if (!CheckPermissions(permissions, _botConfiguration.ReviewPermissions))
             return null;
         
         var excludedStates = new[]
@@ -98,10 +116,15 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
             PullRequestReviewState.Pending
         };
 
-        return excludedStates.Contains(reviewEvent.Review.State.Value) ? null : reviewEvent;
+        var githubEvent = excludedStates.Contains(reviewEvent.Payload.Review.State.Val()) ? null : reviewEvent;
+
+        if (githubEvent != null)
+            await PublishAsync(githubEvent, cancellation: ct);
+
+        return githubEvent;
     }
 
-    private static bool CheckPermissions(RepositoryPermissions permissions, List<GithubPermissions> allowedPermissions)
+    private static bool CheckPermissions(CollaboratorPermissions permissions, List<GithubPermissions> allowedPermissions)
     {
         if (allowedPermissions.Contains(GithubPermissions.None))
             return true;
@@ -110,13 +133,13 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
             return permissions.Admin;
 
         if (allowedPermissions.Contains(GithubPermissions.Maintain))
-            return permissions.Maintain;
+            return permissions.Maintain ?? false;
 
         if (allowedPermissions.Contains(GithubPermissions.Push))
             return permissions.Push;
 
         if (allowedPermissions.Contains(GithubPermissions.Triage))
-            return permissions.Triage;
+            return permissions.Triage  ?? false;
 
         return allowedPermissions.Contains(GithubPermissions.Pull) && permissions.Pull;
     }
