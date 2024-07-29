@@ -29,4 +29,5 @@ public class PullRequest
     public int Approvals { get; set; } = 0;
     
     public List<PullRequestComment> Comments { get; } = [];
+    public List<Reviewer> Reviewers { get; } = [];
 }

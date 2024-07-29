@@ -23,6 +23,11 @@ public class Context : DbContext
             .HasMany(e => e.Comments)
             .WithOne()
             .HasForeignKey(e => e.PullRequestId);
+        
+        builder.Entity<PullRequest>()
+            .HasMany(e => e.Reviewers)
+            .WithOne()
+            .HasForeignKey(e => e.PullRequestId);
 
         builder.Entity<PullRequestComment>();
     }
