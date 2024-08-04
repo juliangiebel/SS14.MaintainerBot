@@ -1,50 +1,61 @@
 ﻿using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using Quartz;
+using Serilog;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Types;
 using SS14.MaintainerBot.Models;
+using SS14.MaintainerBot.Models.Types;
+using ILogger = Serilog.ILogger;
 
 namespace SS14.MaintainerBot.Scheduler.Jobs;
 
 [CronSchedule("Scheduler#MergeProcessCron", "MergeProcesses", "processing", true)]
 public class ProcessMergeProcesses : IJob
 {
-    private readonly GithubApiService _apiService;
-    private readonly Context _context;
-
-    private GithubBotConfiguration _configuration = new();
+    private readonly IGithubApiService _apiService;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger _log;
+    private readonly Context _dbContext;
     
-    public ProcessMergeProcesses(IServiceScopeFactory scopeFactory, IConfiguration configuration, GithubApiService apiService)
+    private readonly GithubBotConfiguration _configuration = new();
+    
+    public ProcessMergeProcesses(IServiceScopeFactory scopeFactory, IConfiguration configuration, IGithubApiService apiService, Context dbContext)
     {
         _apiService = apiService;
-        var scope = scopeFactory.CreateScope();
-        _context = scope.Resolve<Context>();
+        _dbContext = dbContext;
+        _scopeFactory = scopeFactory;
         
         configuration.Bind(GithubBotConfiguration.Name, _configuration);
+        _log = Log.ForContext<ProcessMergeProcesses>();
     }
 
     public async Task Execute(IJobExecutionContext context)
     {
-        var fireTime = context.FireTimeUtc.DateTime;
-        
-        var processes = _context.MergeProcesses!
-            .Include(p => p.PullRequest)
-            .Where(p => p.StartedOn + p.MergeDelay < fireTime)
-            .GetEnumerator();
+        _log.Debug("Processing merge processes");
+        var fireTime = context.FireTimeUtc.UtcDateTime;
 
-        while (processes.MoveNext())
+        //using var scope = _scopeFactory.CreateScope();
+        //var dbContext = scope.Resolve<Context>();
+        
+        var processes = await _dbContext.MergeProcesses!
+            .Include(p => p.PullRequest)
+            .Where(p => p.Status == MergeProcessStatus.Scheduled && p.StartedOn + p.MergeDelay < fireTime)
+            .ToListAsync();
+
+        foreach (var process in processes)
         {
             var installation = new InstallationIdentifier(
-                processes.Current.PullRequest.InstallationId,
-                processes.Current.PullRequest.GhRepoId);
+                process.PullRequest.InstallationId,
+                process.PullRequest.GhRepoId);
 
             await _apiService.MergePullRequest(
                 installation,
-                processes.Current.PullRequest.Number,
+                process.PullRequest.Number,
                 _configuration.MergeMethod);
         }
         
-        processes.Dispose();
+        if (processes.Count > 0)
+            _log.Information("Merged {count} pull requests", processes.Count);
     }
 }

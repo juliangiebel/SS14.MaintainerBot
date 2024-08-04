@@ -64,10 +64,11 @@ if (serverConfiguration.EnableSentry)
 
 #region Database
 
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("default"));
+await using var dataSource = dataSourceBuilder.Build();
 builder.Services.AddDbContext<Context>(opt =>
 {
-    var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("default"));
-    using var dataSource = dataSourceBuilder.Build();
+    // ReSharper disable once AccessToDisposedClosure
     opt.UseNpgsql(dataSource);
 });
 

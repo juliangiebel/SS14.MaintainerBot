@@ -15,3 +15,6 @@ Server:
     - "https://localhost:7266"
   Language: "en-US"
   EnableMigrations: false
+  
+Scheduler:
+  MergeProcessCron: "0 * * * * ?"
