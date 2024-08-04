@@ -17,9 +17,10 @@ public sealed class GithubDbRepository
         DbContext = context;
     }
 
-    public async Task<PullRequest?> TryGetPullRequest(long ghRepoId, int number, CancellationToken ct)
+    public async Task<PullRequest?> GetPullRequest(long ghRepoId, int number, CancellationToken ct)
     {
          return await DbContext.PullRequest!
+             .Include(p => p.Reviewers)
              .Where(p => p.GhRepoId == ghRepoId && p.Number == number)
              .SingleOrDefaultAsync(cancellationToken: ct);
     }
@@ -45,7 +46,7 @@ public sealed class GithubDbRepository
         TimeSpan mergeDelay,
         CancellationToken ct)
     {
-        var pullRequest = await TryGetPullRequest(repositoryId, pullRequestNumber, ct);
+        var pullRequest = await GetPullRequest(repositoryId, pullRequestNumber, ct);
         if (pullRequest == null)
         {
             Log.Error("error");
@@ -87,5 +88,56 @@ public sealed class GithubDbRepository
         return await DbContext.MergeProcesses!
             .Where(mp => mp.PullRequestId == pullRequestId)
             .AnyAsync(ct);
+    }
+
+    public async Task<MergeProcess?> GetMergeProcessForPr(Guid pullRequestId, CancellationToken ct)
+    {
+        return await DbContext.MergeProcesses!
+            .Where(mp => mp.PullRequestId == pullRequestId)
+            .SingleOrDefaultAsync(ct);
+    }
+    
+    public async Task UpdatePullRequestReviewers(long repositoryId, int pullRequestNumber, long userId, string userName, ReviewStatus status, CancellationToken ct)
+    {
+        if (status is ReviewStatus.Dismissed or ReviewStatus.Commented)
+            return;
+        
+        var pullRequest = await DbContext.PullRequest!
+            .Where(pr => pr.GhRepoId == repositoryId && pr.Number == pullRequestNumber)
+            .SingleOrDefaultAsync(ct);
+
+        if (pullRequest == null)
+            return;
+
+        var reviewer = await DbContext.Reviewer!
+            .Where(r => r.PullRequestId == pullRequest.Id && r.GhUserId == userId)
+            .SingleOrDefaultAsync(ct);
+
+        var newReviewer = reviewer == null;
+        
+        reviewer ??= new Reviewer
+        {
+            PullRequestId = pullRequest.Id,
+            GhUserId = userId,
+            Name = userName
+        };
+
+        reviewer.Status = status;
+
+        if (newReviewer)
+        {
+            DbContext.Add(reviewer);
+        }
+        else
+        {
+            DbContext.Update(reviewer);
+        }
+    }
+
+    public async Task<int> ReviewCountByStatus(Guid pullRequestId, ReviewStatus status, CancellationToken ct)
+    {
+        return await DbContext.Reviewer!
+            .Where(r => r.PullRequestId == pullRequestId && r.Status == status)
+            .CountAsync(ct);
     }
 }

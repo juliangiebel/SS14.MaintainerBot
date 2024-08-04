@@ -3,5 +3,8 @@
 public enum ReviewStatus
 {
     Approved,
-    ChangeRequested
+    ChangeRequested,
+    Commented,
+    Dismissed,
+    Pending
 }

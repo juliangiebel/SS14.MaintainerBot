@@ -7,8 +7,6 @@ using Serilog;
 using SS14.GithubApiHelper.Extensions;
 using SS14.GithubApiHelper.Services;
 using SS14.MaintainerBot.Configuration;
-using SS14.MaintainerBot.Discord;
-using SS14.MaintainerBot.Discord.DiscordCommands;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Helpers;
@@ -22,7 +20,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuration as yaml
 builder.Configuration.AddYamlFile("appsettings.yaml", false, true);
 builder.Configuration.AddYamlFile($"appsettings.{builder.Environment.EnvironmentName}.yaml", true, true);
-builder.Configuration.AddYamlFile("appsettings.Secret.yaml", true, true);
+
+if (!builder.Environment.IsEnvironment("Testing"))
+    builder.Configuration.AddYamlFile("appsettings.Secret.yaml", true, true);
 
 var serverConfiguration = new ServerConfiguration();
 builder.Configuration.Bind(ServerConfiguration.Name, serverConfiguration);
@@ -31,14 +31,17 @@ builder.Configuration.Bind(ServerConfiguration.Name, serverConfiguration);
 
 #region Server
 
-builder.Services.AddCors(options =>
+if (serverConfiguration.CorsOrigins != null)
 {
-    options.AddDefaultPolicy(policy =>
+    builder.Services.AddCors(options =>
     {
-        policy.WithOrigins(serverConfiguration.CorsOrigins.ToArray());
-        policy.AllowCredentials();
-    });
-});
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.WithOrigins(serverConfiguration.CorsOrigins.ToArray());
+            policy.AllowCredentials();
+        });
+    });   
+}
 
 //Forwarded headers
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -61,11 +64,10 @@ if (serverConfiguration.EnableSentry)
 
 #region Database
 
-var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("default"));
-await using var dataSource = dataSourceBuilder.Build();
 builder.Services.AddDbContext<Context>(opt =>
 {
-    // ReSharper disable once AccessToDisposedClosure
+    var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("default"));
+    using var dataSource = dataSourceBuilder.Build();
     opt.UseNpgsql(dataSource);
 });
 
@@ -80,7 +82,7 @@ builder.Services.AddSingleton<RateLimiterService>();
 // Github
 //builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
 builder.Services.AddScoped<GithubDbRepository>();
-builder.Services.AddSingleton<GithubApiService>();
+builder.Services.AddSingleton<IGithubApiService, GithubApiService>();
 builder.Services.AddSingleton<PrVerificationService>();
 builder.Services.AddGithubTemplating();
 
@@ -96,7 +98,8 @@ builder.Services.AddScheduler();
 var app = builder.Build();
 
 //Migrate on startup
-new StartupMigrationHelper().Migrate<Context>(app);
+if (serverConfiguration.EnableMigrations)
+    StartupMigrationHelper.Migrate<Context>(app);
 
 // Configure the HTTP request pipeline.
 if (serverConfiguration.PathBase != null)
@@ -116,7 +119,8 @@ if ((app.Environment.IsProduction() || app.Environment.IsStaging()) && serverCon
     app.UseHsts();
 }
 
-app.UseCors();
+if (serverConfiguration.CorsOrigins != null)
+    app.UseCors();
 
 await app.PreloadGithubTemplates();
 

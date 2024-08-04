@@ -14,8 +14,6 @@ namespace SS14.MaintainerBot.Github.EventHandlers;
 [UsedImplicitly]
 public class ReviewHandler : IEventHandler<ReviewEvent>
 {
-    private const string DismissedAction = "dismissed";
-
     private readonly GithubBotConfiguration _configuration = new();
     
     private readonly IServiceScopeFactory _scopeFactory;
@@ -34,12 +32,23 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
 
     public async Task HandleAsync(ReviewEvent eventModel, CancellationToken ct)
     {
+        // TODO: handle status ChangeRequested in database
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
-        
-        if (eventModel.Payload.Action == DismissedAction)
-            return;
 
+        var payload = eventModel.Payload;
+        var status = Enum.Parse<ReviewStatus>(payload.Review.State.Val().ToString());
+        
+        await dbRepository.UpdatePullRequestReviewers(
+            payload.Repository.Id, 
+            payload.PullRequest.Number,
+            payload.Review.User.Id, 
+            payload.Review.User.Login, // That is the name. The actual name property is null a lot of times 
+            status, 
+            ct);
+        
+        await dbRepository.DbContext.SaveChangesAsync(ct);
+        
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (eventModel.Payload.Review.State.Val())
         {
@@ -54,21 +63,23 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         if (!_verificationService.CheckGeneralRequirements(payload.PullRequest))
             return;
         
-        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
+        // TODO: Add logging for pull request not existing
+        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed} or {Status: PullRequestStatus.Approved})
             return;
 
+        var changeRequests = await dbRepository.ReviewCountByStatus(pullRequest.Id, ReviewStatus.ChangeRequested, ct);
+        if (changeRequests > 0)
+            return;
+        
+        var approvals = await dbRepository.ReviewCountByStatus(pullRequest.Id, ReviewStatus.Approved, ct);
+        if (approvals < _configuration.RequiredApprovals)
+            return;
+        
         pullRequest.Status = PullRequestStatus.Approved;
-        pullRequest.Approvals += 1;
         dbRepository.DbContext.Update(pullRequest);
 
         await dbRepository.DbContext.SaveChangesAsync(ct);
-
-        // This is a very simple implementation of checking the amount of approvals and it
-        // doesn't prevent the same person approving multiple times from triggering the merge process.
-        // Improving that would require keeping track of who approved.
-        if (pullRequest.Approvals < _configuration.RequiredApprovals)
-            return;
         
         var hasMergeProcess = await dbRepository.HasMergeProcessForPr(pullRequest.Id, ct);
         
@@ -98,9 +109,11 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
     private async Task OnPrChangesRequested(ReviewEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
     {
         var payload = eventModel.Payload;
-        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
+        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
+        
+        // TODO: Set status ChangeRequested
         
         var changeStatusCommand = new ChangeMergeProcessStatus(
             new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),

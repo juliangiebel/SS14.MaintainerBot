@@ -24,9 +24,6 @@ public class PullRequest
 
     [Required]
     public PullRequestStatus Status { get; set; } = PullRequestStatus.Open;
-
-    [Required, DefaultValue(0)]
-    public int Approvals { get; set; } = 0;
     
     public List<PullRequestComment> Comments { get; } = [];
     public List<Reviewer> Reviewers { get; } = [];

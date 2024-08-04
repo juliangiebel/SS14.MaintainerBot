@@ -17,11 +17,11 @@ public sealed class GithubCommandHandler :
     ICommandHandler<CreateMergeProcess, MergeProcess?>,
     ICommandHandler<ChangeMergeProcessStatus, MergeProcess?>
 {
-    private readonly GithubApiService _githubApiService;
+    private readonly IGithubApiService _githubApiService;
     private readonly GithubBotConfiguration _configuration = new();
     private readonly GithubDbRepository _dbRepository;
 
-    public GithubCommandHandler(GithubApiService githubApiService, IConfiguration configuration, GithubDbRepository dbRepository)
+    public GithubCommandHandler(IGithubApiService githubApiService, IConfiguration configuration, GithubDbRepository dbRepository)
     {
         configuration.Bind(GithubBotConfiguration.Name, _configuration);
         _githubApiService = githubApiService;

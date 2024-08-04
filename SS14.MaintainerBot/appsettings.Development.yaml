@@ -1,7 +1,7 @@
 Serilog:
   Using: [ "Serilog.Sinks.Console" ]
   MinimumLevel:
-    Default: Verbose #Information
+    Default: Information
     Override:
       SS14: Verbose
     
@@ -14,3 +14,4 @@ Server:
     - "http://localhost:5294"
     - "https://localhost:7266"
   Language: "en-US"
+  EnableMigrations: false

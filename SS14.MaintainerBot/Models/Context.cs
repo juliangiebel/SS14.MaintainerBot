@@ -10,6 +10,8 @@ public class Context : DbContext
     public DbSet<PullRequest>? PullRequest { get; set; }
     public DbSet<PullRequestComment>? PullRequestComment { get; set; }
     
+    public DbSet<Reviewer>? Reviewer { get; set; }
+    
     public Context(DbContextOptions<Context> options) : base(options) {}
 
     protected override void OnModelCreating(ModelBuilder builder)

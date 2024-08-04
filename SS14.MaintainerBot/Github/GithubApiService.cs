@@ -7,7 +7,43 @@ using ILogger = Serilog.ILogger;
 
 namespace SS14.MaintainerBot.Github;
 
-public sealed class GithubApiService : AbstractGithubApiService
+public interface IGithubApiService
+{
+    Task<long?> CreateCommentWithTemplate(InstallationIdentifier installation, int issueId, string templateName, object? model);
+    Task UpdateCommentWithTemplate(InstallationIdentifier installation, int issueId, long commentId, string templateName, object? model);
+
+    Task<bool> MergePullRequest(
+        InstallationIdentifier installation,
+        int pullRequestNumber,
+        PullRequestMergeMethod mergeMethod,
+        string? commitTitle = null,
+        string? commitMessage = null
+    );
+
+    Task<CollaboratorPermissions> GetUserPermissionForRepository(InstallationIdentifier installation, User user);
+
+    /// <summary>
+    /// Gets a list of all installations of this github app
+    /// </summary>
+    /// <remarks>
+    /// Used for selecting which installation to configure in the administration for example.
+    /// Refrain from iterating over all installations and creating clients for them. Use installation ids saved in the database instead.
+    /// </remarks>
+    /// <returns>List of installations</returns>
+    Task<IReadOnlyList<Installation>> GetInstallations();
+
+    /// <summary>
+    /// Gets a list of repositories the installation with the given id has access to.
+    /// </summary>
+    /// <remarks>
+    /// Used for configuration in the administration interface
+    /// </remarks>
+    /// <param name="installationId">The installation id</param>
+    /// <returns>A list of repositories the app has access to</returns>
+    Task<RepositoriesResponse> GetRepositories(long installationId);
+}
+
+public sealed class GithubApiService : AbstractGithubApiService, IGithubApiService
 {
     private readonly GithubTemplateService _templateService;
 

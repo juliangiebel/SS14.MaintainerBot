@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using JetBrains.Annotations;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -7,11 +8,18 @@ using Serilog;
 namespace SS14.MaintainerBot.Helpers;
 
 //Taken from https://gist.github.com/Tim-Hodge/eea0601a14177c199fe60557eeeff31e
-public sealed class StartupMigrationHelper
+public static class StartupMigrationHelper
 {
-    public void Migrate<TContext>(IApplicationBuilder builder) where TContext : DbContext
+    [PublicAPI]
+    public static void Migrate<TContext>(IApplicationBuilder builder) where TContext : DbContext
     {
-        using var scope = builder.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        Migrate<TContext>(builder.ApplicationServices);
+    }
+    
+    [PublicAPI]
+    public static void Migrate<TContext>(IServiceProvider serviceProvider) where TContext : DbContext
+    {
+        using var scope = serviceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope();
         using var ctx = scope.ServiceProvider.GetRequiredService<TContext>();
 
         var sp = ctx.GetInfrastructure();
@@ -39,7 +47,8 @@ public sealed class StartupMigrationHelper
         {
             throw new InvalidOperationException("There are differences between the current database model and the most recent migration.");
         }
-
+        
         ctx.Database.Migrate();
+        Log.Debug("Applied migrations.");
     }
 }

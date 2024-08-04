@@ -1,0 +1,20 @@
+Serilog:
+  Using: [ "Serilog.Sinks.Console" ]
+  MinimumLevel:
+    Default: Verbose #Information
+    Override:
+      SS14: Verbose
+      
+DetailedErrors: true
+
+#ConnectionStrings:
+  #default: "Host=127.0.0.1;Port=46115;Database=ss14_maintainer_test;Username=postgres;Password=testdatabasepassword"
+
+Server:
+  EnableMigrations: false
+
+Scheduler:
+  Enabled: false
+  
+GithubBot:
+  RequiredApprovals: 2

@@ -16,13 +16,13 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
     private const string GithubEventHeader = "x-github-event";
     private const string ReviewDismissedAction = "dismissed";
     
-    private readonly GithubApiService _githubApiService;
+    private readonly IGithubApiService _githubApiService;
     
     private readonly IConfiguration _configuration;
     private readonly ServerConfiguration _serverConfiguration = new();
     private readonly GithubBotConfiguration _botConfiguration = new();
 
-    public GithubWebhookEndpoint(GithubApiService githubApiService, IConfiguration configuration)
+    public GithubWebhookEndpoint(IGithubApiService githubApiService, IConfiguration configuration)
     {
         _githubApiService = githubApiService;
         _configuration = configuration;

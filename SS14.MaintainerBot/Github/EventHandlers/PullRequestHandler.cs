@@ -52,7 +52,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     {
         var payload = eventModel.Payload;
         
-        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
+        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
 
@@ -72,7 +72,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         if (!_verificationService.CheckGeneralRequirements(payload.PullRequest))
             return;
 
-        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
+        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is not null and not {Status: PullRequestStatus.Closed})
             return;
         
@@ -109,7 +109,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     {
         var payload = eventModel.Payload;
         
-        var pullRequest = await dbRepository.TryGetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
+        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
 

@@ -7,7 +7,7 @@ public class ServerConfiguration
     public const string Name = "Server";
 
     public Uri Host { get; set; } = new("https://localhost:7266");
-    public List<string> CorsOrigins { get; set; } = default!;
+    public List<string>? CorsOrigins { get; set; }
     public CultureInfo Language { get; set; } = default!; //new("en-US");
 
     /// <summary>
@@ -28,6 +28,8 @@ public class ServerConfiguration
     /// Add a slash before the path: "/path"
     /// </remarks>
     public string? PathBase { get; set; }
+
+    public bool EnableMigrations { get; set; } = true;
 
     //public int RateLimitCount { get; set; } = 20;
     //public long RateLimitWindowMinutes { get; set; } = 1;

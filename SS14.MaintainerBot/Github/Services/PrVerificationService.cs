@@ -13,7 +13,6 @@ public class PrVerificationService
 
     public bool CheckGeneralRequirements(PullRequest pullRequest)
     {
-
         // TODO: Implement checking configured requirements
         return true;
     }

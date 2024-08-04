@@ -6,7 +6,7 @@ namespace SS14.MaintainerBot.Scheduler;
 public class SchedulerConfig
 {
     public const string Name = "Scheduler";
-
+    
     /// <summary>
     /// The cron schedule for checking merge processes and merging them when their merge delay has passed-
     /// </summary>
@@ -15,5 +15,5 @@ public class SchedulerConfig
     /// </remarks>
     /// <example>Daily at 2 am: <code>0 0 2 * * ?</code></example>
     public string MergeProcessCron { get; set; } = "0 0 2 * * ?";
-
+    
 }
