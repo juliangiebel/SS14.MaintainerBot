@@ -12,9 +12,6 @@ DetailedErrors: true
 
 Server:
   EnableMigrations: false
-
-Scheduler:
-  Enabled: false
   
 GithubBot:
   RequiredApprovals: 2
