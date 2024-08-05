@@ -1,5 +1,6 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
+using Octokit;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Events;
@@ -32,26 +33,32 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
     {
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
-        
+
+        var payload = eventModel.Payload;
         // TODO: labeled?, unlabeled?, reopened(same handler method as opened?)?,
-        switch (eventModel.Payload.Action)
+        switch (payload.Action)
         {
-            case "opened": await OnPullRequestOpened(eventModel, dbRepository, ct); break;
-            case "closed": await OnPullRequestClosed(eventModel, dbRepository, ct); break;
-            case "synced": await OnPullRequestSynced(eventModel, dbRepository, ct); break;
+            case "opened": await OnPullRequestOpened(payload, dbRepository, ct); break;
+            case "closed": await OnPullRequestClosed(payload, dbRepository, ct); break;
+            case "synced": await OnPullRequestSynced(payload, dbRepository, ct); break;
+            case "labeled": await OnPullRequestLabeled(payload, dbRepository, ct); break;
         }
+    }
+
+    private async Task OnPullRequestLabeled(PullRequestEventPayload payload, GithubDbRepository dbRepository, CancellationToken ct)
+    {
+        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
+        if (pullRequest is null or {Status: PullRequestStatus.Closed})
+            return;
+
+        await CheckForConflict(payload, pullRequest, ct);
     }
 
     /// <summary>
     /// Gets called when a commit got pushed to the remote branch of a PR
     /// </summary>
-    /// <param name="eventModel"></param>
-    /// <param name="dbRepository"></param>
-    /// <param name="ct"></param>
-    private async Task OnPullRequestSynced(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
+    private async Task OnPullRequestSynced(PullRequestEventPayload payload, GithubDbRepository dbRepository, CancellationToken ct)
     {
-        var payload = eventModel.Payload;
-        
         var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
@@ -65,10 +72,8 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         await changeStatusCommand.ExecuteAsync(ct);
     }
 
-    private async Task OnPullRequestOpened(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
+    private async Task OnPullRequestOpened(PullRequestEventPayload payload, GithubDbRepository dbRepository, CancellationToken ct)
     {
-        var payload = eventModel.Payload;
-        
         if (!_verificationService.CheckGeneralRequirements(payload.PullRequest))
             return;
 
@@ -103,12 +108,11 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         );
 
         await command.ExecuteAsync(ct);
+        await CheckForConflict(payload, pullRequest, ct);
     }
     
-    private async Task OnPullRequestClosed(PullRequestEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
+    private async Task OnPullRequestClosed(PullRequestEventPayload payload, GithubDbRepository dbRepository, CancellationToken ct)
     {
-        var payload = eventModel.Payload;
-        
         var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
@@ -143,5 +147,20 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         );
 
         await command.ExecuteAsync(ct);
+    }
+
+    private async Task CheckForConflict(PullRequestEventPayload payload, PullRequest pullRequest, CancellationToken ct)
+    {
+        if (payload.PullRequest.Mergeable != false)
+            return;
+
+        
+        var changeStatusCommand = new ChangeMergeProcessStatus(
+            new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
+            pullRequest.Number,
+            MergeProcessStatus.Interrupted
+        );
+
+        await changeStatusCommand.ExecuteAsync(ct);
     }
 }

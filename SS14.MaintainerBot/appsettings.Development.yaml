@@ -17,4 +17,4 @@ Server:
   EnableMigrations: false
   
 Scheduler:
-  MergeProcessCron: "0 * * * * ?"
+  MergeProcessCron: "0 0/5 * * * ?"
