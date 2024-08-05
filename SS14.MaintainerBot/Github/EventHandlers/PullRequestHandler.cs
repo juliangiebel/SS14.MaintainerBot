@@ -120,7 +120,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         var changeStatusCommand = new ChangeMergeProcessStatus(
             new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
             pullRequest.Number,
-            MergeProcessStatus.Closed
+            payload.PullRequest.Merged ? MergeProcessStatus.Merged : MergeProcessStatus.Closed
         );
 
         await changeStatusCommand.ExecuteAsync(ct);
