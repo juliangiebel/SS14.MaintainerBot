@@ -1,8 +1,11 @@
 ﻿using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
+using Octokit;
 using Quartz;
 using Serilog;
 using SS14.MaintainerBot.Github;
+using SS14.MaintainerBot.Github.Commands;
+using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Types;
 using SS14.MaintainerBot.Models;
 using SS14.MaintainerBot.Models.Types;
@@ -49,6 +52,18 @@ public class ProcessMergeProcesses : IJob
                 process.PullRequest.InstallationId,
                 process.PullRequest.GhRepoId);
 
+            var ghPullRequest = await _apiService.GetPullRequest(installation, process.PullRequest.Number);
+            if (ghPullRequest == null || ghPullRequest.Mergeable == false)
+            {
+                var command = new ChangeMergeProcessStatus(
+                    installation,
+                    process.PullRequest.Number,
+                    ghPullRequest == null ? MergeProcessStatus.Failed : MergeProcessStatus.Interrupted);
+
+                await command.ExecuteAsync();
+                continue;
+            }
+            
             await _apiService.MergePullRequest(
                 installation,
                 process.PullRequest.Number,

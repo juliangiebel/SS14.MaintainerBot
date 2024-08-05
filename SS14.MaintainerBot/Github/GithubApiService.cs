@@ -41,6 +41,8 @@ public interface IGithubApiService
     /// <param name="installationId">The installation id</param>
     /// <returns>A list of repositories the app has access to</returns>
     Task<RepositoriesResponse> GetRepositories(long installationId);
+
+    Task<PullRequest?> GetPullRequest(InstallationIdentifier installation, int pullRequestNumber);
 }
 
 public sealed class GithubApiService : AbstractGithubApiService, IGithubApiService
@@ -135,5 +137,15 @@ public sealed class GithubApiService : AbstractGithubApiService, IGithubApiServi
         var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
         var response = await client.Repository.Collaborator.ReviewPermission(installation.RepositoryId, user.Login);
         return response.Collaborator.Permissions;
+    }
+
+    public async Task<PullRequest?> GetPullRequest(InstallationIdentifier installation, int pullRequestNumber)
+    {
+        // TODO: handle this better. At least add retry with exp. backoff
+        if (!await CheckRateLimit(installation))
+            return null;
+        
+        var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
+        return await client.PullRequest.Get(installation.RepositoryId, pullRequestNumber);
     }
 }
