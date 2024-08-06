@@ -140,4 +140,11 @@ public sealed class GithubDbRepository
             .Where(r => r.PullRequestId == pullRequestId && r.Status == status)
             .CountAsync(ct);
     }
+
+    public async Task<List<PullRequest>> GetPullRequests(long repositoryId, CancellationToken ct)
+    {
+        return await DbContext.PullRequest!
+            .Where(p => p.GhRepoId == repositoryId)
+            .ToListAsync(ct);
+    }
 }

@@ -77,20 +77,12 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
         if (!_verificationService.CheckGeneralRequirements(payload.PullRequest))
             return;
 
-        var pullRequest = await dbRepository.GetPullRequest(payload.Repository.Id, payload.PullRequest.Number, ct);
-        if (pullRequest is not null and not {Status: PullRequestStatus.Closed})
-            return;
-        
-        pullRequest ??= new PullRequest
-        {
-            InstallationId = payload.Installation.Id,
-            GhRepoId = payload.Repository.Id,
-            Number = payload.Number,
-            Status = PullRequestStatus.Open
-        };
+        var installation = new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id);
+        var createPrCommand = new SavePullRequest(installation, payload.Number);
+        var pullRequest = await createPrCommand.ExecuteAsync(ct);
 
-        dbRepository.DbContext.PullRequest!.Update(pullRequest);
-        await dbRepository.DbContext.SaveChangesAsync(ct);
+        if (pullRequest == null)
+            return;
         
         var processed = _configuration.ProcessUnapprovedPrs && _verificationService.CheckProcessingRequirements(payload.PullRequest);
         
@@ -101,7 +93,7 @@ public class PullRequestHandler : IEventHandler<PullRequestEvent>
             return;
 
         var command = new CreateMergeProcess(
-            new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
+            installation,
             pullRequest.Number,
             MergeProcessStatus.NotStarted,
             _configuration.MergeDelay

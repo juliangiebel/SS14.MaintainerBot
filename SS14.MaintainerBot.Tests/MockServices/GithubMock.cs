@@ -40,4 +40,9 @@ public class GithubMock : IGithubApiService
     {
         throw new NotImplementedException();
     }
+
+    public Task<PullRequest?> GetPullRequest(InstallationIdentifier installation, int pullRequestNumber)
+    {
+        throw new NotImplementedException();
+    }
 }

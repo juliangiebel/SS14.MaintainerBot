@@ -10,12 +10,15 @@ using SS14.MaintainerBot.Models.Entities;
 namespace SS14.MaintainerBot.Github;
 
 [UsedImplicitly]
-public sealed class GithubCommandHandler : 
-    ICommandHandler<CreateOrUpdateComment, PullRequestComment?>, 
-    ICommandHandler<GetPullRequest, Guid>,
+public sealed class GithubCommandHandler :
+    ICommandHandler<CreateOrUpdateComment, PullRequestComment?>,
     ICommandHandler<MergePullRequest, bool>,
     ICommandHandler<CreateMergeProcess, MergeProcess?>,
-    ICommandHandler<ChangeMergeProcessStatus, MergeProcess?>
+    ICommandHandler<ChangeMergeProcessStatus, MergeProcess?>,
+    ICommandHandler<SavePullRequest, PullRequest?>,
+    ICommandHandler<GetPullRequest, PullRequest?>,
+    ICommandHandler<GetPullRequests, List<PullRequest>>
+
 {
     private readonly IGithubApiService _githubApiService;
     private readonly GithubBotConfiguration _configuration = new();
@@ -44,11 +47,6 @@ public sealed class GithubCommandHandler :
         
         await _dbRepository.DbContext.SaveChangesAsync(ct);
         return comment;
-    }
-
-    public Task<Guid> ExecuteAsync(GetPullRequest command, CancellationToken ct)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task<bool> ExecuteAsync(MergePullRequest command, CancellationToken ct)
@@ -153,5 +151,35 @@ public sealed class GithubCommandHandler :
         await statusChangedEvent.PublishAsync(Mode.WaitForNone, cancellation: ct);
         
         return mergeProcess;
+    }
+
+    public async Task<PullRequest?> ExecuteAsync(SavePullRequest command, CancellationToken ct)
+    {
+        var pullRequest = await _dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
+        if (pullRequest is not null and not {Status: PullRequestStatus.Closed})
+            return null;
+        
+        pullRequest ??= new PullRequest
+        {
+            InstallationId = command.Installation.InstallationId,
+            GhRepoId = command.Installation.RepositoryId,
+            Number = command.Number,
+            Status = PullRequestStatus.Open
+        };
+
+        _dbRepository.DbContext.PullRequest!.Update(pullRequest);
+        await _dbRepository.DbContext.SaveChangesAsync(ct);
+
+        return pullRequest;
+    }
+
+    public async Task<PullRequest?> ExecuteAsync(GetPullRequest command, CancellationToken ct)
+    {
+        return await _dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
+    }
+
+    public async Task<List<PullRequest>> ExecuteAsync(GetPullRequests command, CancellationToken ct)
+    {
+        return await _dbRepository.GetPullRequests(command.Installation.RepositoryId, ct);
     }
 }
