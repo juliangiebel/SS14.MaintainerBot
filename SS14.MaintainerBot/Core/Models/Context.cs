@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SS14.MaintainerBot.Core.Models.Entities;
 using SS14.MaintainerBot.Github.Entities;
-using SS14.MaintainerBot.Models.Entities;
 
-namespace SS14.MaintainerBot.Models;
+namespace SS14.MaintainerBot.Core.Models;
 
 public class Context : DbContext
 {

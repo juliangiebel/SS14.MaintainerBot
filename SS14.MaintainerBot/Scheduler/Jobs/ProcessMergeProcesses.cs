@@ -1,14 +1,12 @@
 ﻿using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
-using Octokit;
 using Quartz;
 using Serilog;
+using SS14.MaintainerBot.Core.Models;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Commands;
-using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models;
-using SS14.MaintainerBot.Models.Types;
 using ILogger = Serilog.ILogger;
 
 namespace SS14.MaintainerBot.Scheduler.Jobs;

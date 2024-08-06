@@ -1,10 +1,10 @@
 ﻿using FastEndpoints;
 using Serilog;
+using SS14.MaintainerBot.Core.Models.Entities;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models.Entities;
-using SS14.MaintainerBot.Models.Types;
 using PullRequest = SS14.MaintainerBot.Github.Entities.PullRequest;
 
 namespace SS14.MaintainerBot.Github.Helpers;

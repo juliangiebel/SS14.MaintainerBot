@@ -6,11 +6,11 @@ using Npgsql;
 using Serilog;
 using SS14.GithubApiHelper.Extensions;
 using SS14.GithubApiHelper.Services;
-using SS14.MaintainerBot.Configuration;
+using SS14.MaintainerBot.Core.Configuration;
+using SS14.MaintainerBot.Core.Helpers;
+using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Services;
-using SS14.MaintainerBot.Helpers;
-using SS14.MaintainerBot.Models;
 using SS14.MaintainerBot.Scheduler;
 
 var builder = WebApplication.CreateBuilder(args);

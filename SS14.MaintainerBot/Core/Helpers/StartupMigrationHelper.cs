@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Serilog;
 
-namespace SS14.MaintainerBot.Helpers;
+namespace SS14.MaintainerBot.Core.Helpers;
 
 //Taken from https://gist.github.com/Tim-Hodge/eea0601a14177c199fe60557eeeff31e
 public static class StartupMigrationHelper

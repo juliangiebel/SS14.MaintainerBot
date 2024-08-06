@@ -4,10 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Octokit;
 using Octokit.Internal;
+using SS14.MaintainerBot.Core.Helpers;
+using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Events;
-using SS14.MaintainerBot.Helpers;
-using SS14.MaintainerBot.Models;
 using SS14.MaintainerBot.Tests.MockServices;
 
 namespace SS14.MaintainerBot.Tests;

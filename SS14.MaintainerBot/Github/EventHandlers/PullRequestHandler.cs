@@ -1,12 +1,12 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
 using Octokit;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models.Types;
 using PullRequest = SS14.MaintainerBot.Github.Entities.PullRequest;
 
 namespace SS14.MaintainerBot.Github.EventHandlers;

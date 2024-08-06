@@ -1,7 +1,7 @@
 ﻿using Octokit;
 using SS14.GithubApiHelper.Exceptions;
 using SS14.GithubApiHelper.Services;
-using SS14.MaintainerBot.Configuration;
+using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Github.Types;
 using ILogger = Serilog.ILogger;
 

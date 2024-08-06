@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace SS14.MaintainerBot.Configuration;
+namespace SS14.MaintainerBot.Core.Configuration;
 
 public class ServerConfiguration
 {

@@ -1,8 +1,8 @@
 ﻿using FastEndpoints;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models.Types;
 
 namespace SS14.MaintainerBot.Github.EventHandlers;
 

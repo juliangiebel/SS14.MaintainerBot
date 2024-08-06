@@ -1,12 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Entities;
-using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models.Types;
 
 // ReSharper disable CollectionNeverUpdated.Global
 // ReSharper disable PropertyCanBeMadeInitOnly.Global
 
-namespace SS14.MaintainerBot.Models.Entities;
+namespace SS14.MaintainerBot.Core.Models.Entities;
 
 public class MergeProcess
 {

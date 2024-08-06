@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using Octokit;
 using Octokit.Internal;
 using SS14.GithubApiHelper.Helpers;
-using SS14.MaintainerBot.Configuration;
+using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Helpers;
 using SS14.MaintainerBot.Github.Types;

@@ -37,4 +37,8 @@
     <ItemGroup>
       <ProjectReference Include="..\SS14.GithubApiHelper\SS14.GithubApiHelper.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Core\" />
+    </ItemGroup>
 </Project>

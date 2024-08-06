@@ -1,4 +1,4 @@
-﻿namespace SS14.MaintainerBot.Models.Types;
+﻿namespace SS14.MaintainerBot.Core.Models.Types;
 
 public enum MergeProcessStatus
 {

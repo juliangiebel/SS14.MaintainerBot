@@ -1,11 +1,11 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
 using Serilog;
+using SS14.MaintainerBot.Core.Models.Entities;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models.Entities;
 
 namespace SS14.MaintainerBot.Github;
 

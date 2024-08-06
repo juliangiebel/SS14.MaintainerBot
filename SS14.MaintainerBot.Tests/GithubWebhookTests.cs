@@ -1,9 +1,9 @@
 using FastEndpoints;
 using FastEndpoints.Testing;
 using FluentAssertions;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models.Types;
 
 namespace SS14.MaintainerBot.Tests;
 

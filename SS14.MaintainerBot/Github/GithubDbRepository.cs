@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Serilog;
+using SS14.MaintainerBot.Core.Models;
+using SS14.MaintainerBot.Core.Models.Entities;
+using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Types;
-using SS14.MaintainerBot.Models;
-using SS14.MaintainerBot.Models.Entities;
-using SS14.MaintainerBot.Models.Types;
 
 namespace SS14.MaintainerBot.Github;
 
