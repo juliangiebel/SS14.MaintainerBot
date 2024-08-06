@@ -8,7 +8,7 @@ using SS14.MaintainerBot.Github.Events;
 using SS14.MaintainerBot.Github.Helpers;
 using SS14.MaintainerBot.Github.Types;
 
-namespace SS14.MaintainerBot.Github;
+namespace SS14.MaintainerBot.Github.Endpoints;
 
 [UsedImplicitly]
 public class GithubWebhookEndpoint : EndpointWithoutRequest
