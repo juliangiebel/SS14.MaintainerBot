@@ -15,6 +15,9 @@ Server:
     - "https://localhost:7266"
   Language: "en-US"
   EnableMigrations: false
-  
+
+Auth:
+  ApiKey: development
+
 Scheduler:
   MergeProcessCron: "0 0/5 * * * ?"

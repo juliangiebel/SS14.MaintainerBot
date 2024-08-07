@@ -47,9 +47,9 @@ public class GetPullRequestsEndpoint : Endpoint<InstallationIdentifier, List<Pul
 public class SavePullRequestEndpoint : Endpoint<PullRequestIdentifier, PullRequest?>
 {
     private readonly PrVerificationService _verificationService;
-    private readonly GithubApiService _githubApiService;
+    private readonly IGithubApiService _githubApiService;
     
-    public SavePullRequestEndpoint(PrVerificationService verificationService, GithubApiService githubApiService)
+    public SavePullRequestEndpoint(PrVerificationService verificationService, IGithubApiService githubApiService)
     {
         _verificationService = verificationService;
         _githubApiService = githubApiService;

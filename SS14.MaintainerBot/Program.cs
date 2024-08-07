@@ -3,15 +3,18 @@ using FastEndpoints.Swagger;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using NSwag;
 using Serilog;
 using SS14.GithubApiHelper.Extensions;
 using SS14.GithubApiHelper.Services;
 using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Core.Helpers;
 using SS14.MaintainerBot.Core.Models;
+using SS14.MaintainerBot.Core.Security;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Scheduler;
+using OpenApiSecurityScheme = NSwag.OpenApiSecurityScheme;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,7 +80,6 @@ builder.Services.AddDbContext<Context>(opt =>
 #region AddServices
 
 // Services
-builder.Services.AddFastEndpoints().SwaggerDocument();
 builder.Services.AddSingleton<RateLimiterService>();
 
 // Github
@@ -93,6 +95,31 @@ builder.Services.AddGithubTemplating();
 
 // Scheduler
 builder.Services.AddScheduler();
+
+#endregion
+
+#region Security
+
+builder.Services
+    .AddFastEndpoints()
+    .AddAuthorization()
+    .AddAuthentication(ApiKeyHandler.Name)
+    .AddScheme<ApiKeyOptions, ApiKeyHandler>(ApiKeyHandler.Name, o => builder.Configuration.Bind("Auth", o));
+    
+builder.Services.SwaggerDocument(o =>
+{
+    o.EnableJWTBearerAuth = false;
+    o.DocumentSettings = s =>
+    {
+        s.AddAuth(ApiKeyHandler.Name, new OpenApiSecurityScheme
+        {
+            Description = "API key must appear in header",
+            Type = OpenApiSecuritySchemeType.ApiKey,
+            Name = ApiKeyHandler.HeaderName,
+            In = OpenApiSecurityApiKeyLocation.Header,
+        });
+    };
+});
 
 #endregion
 
@@ -128,12 +155,16 @@ await app.PreloadGithubTemplates();
 if (serverConfiguration is { EnableSentry: true, EnableSentryTracing: true })
     app.UseSentryTracing();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 var endpoints = app.UseFastEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
     endpoints.UseSwaggerGen();
 }
+
 
 app.ScheduleMarkedJobs();
 app.Run();

@@ -38,4 +38,5 @@ public class ServerConfiguration
     /// Enables sentries performance monitoring on endpoints if sentry is enabled
     /// </summary>
     public bool EnableSentryTracing { get; set; } = false;
+     
 }
