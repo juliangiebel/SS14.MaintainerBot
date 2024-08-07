@@ -11,6 +11,8 @@ using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Core.Helpers;
 using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Core.Security;
+using SS14.MaintainerBot.Discord;
+using SS14.MaintainerBot.Discord.DiscordCommands;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Scheduler;
@@ -90,8 +92,8 @@ builder.Services.AddSingleton<PrVerificationService>();
 builder.Services.AddGithubTemplating();
 
 // Discord
-//builder.Services.AddDiscordClient();
-//builder.Services.AddSingleton<ManagementModule>();
+builder.Services.AddDiscordClient();
+builder.Services.AddSingleton<ManagementModule>();
 
 // Scheduler
 builder.Services.AddScheduler();
@@ -167,4 +169,5 @@ if (app.Environment.IsDevelopment())
 
 
 app.ScheduleMarkedJobs();
+await app.UseDiscordClient();
 app.Run();

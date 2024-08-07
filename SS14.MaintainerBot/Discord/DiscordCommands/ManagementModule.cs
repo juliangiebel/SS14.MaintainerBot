@@ -2,7 +2,7 @@
 
 namespace SS14.MaintainerBot.Discord.DiscordCommands;
 
-public class ManagementModule : InteractionModuleBase
+public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
 {
 
     [SlashCommand("status", "Shows the bots status")]
