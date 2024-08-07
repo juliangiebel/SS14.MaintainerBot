@@ -14,13 +14,14 @@ public static class DiscordServiceExtension
         var config = new DiscordSocketConfig
         {
             // TODO: Set correct gateway intents
-            GatewayIntents = GatewayIntents.GuildMessages | GatewayIntents.GuildMessageReactions,
+            GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.GuildMessageReactions,
+            LogLevel = LogSeverity.Verbose
             
         };
 
         var interactionConfig = new InteractionServiceConfig
         {
-            
+            LogLevel = LogSeverity.Verbose
         };
         
         collection.AddSingleton(config);

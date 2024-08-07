@@ -11,14 +11,16 @@ public sealed class DiscordClientService
     private readonly DiscordConfiguration _configuration = new();
     private readonly DiscordSocketClient _client;
     private readonly InteractionService _interactionService;
+    private readonly IServiceProvider _services;
     private readonly Serilog.ILogger _logger;
 
     public bool Enabled { get; private set; }
 
-    public DiscordClientService(IConfiguration configuration, DiscordSocketClient client, InteractionService interactionService)
+    public DiscordClientService(IConfiguration configuration, IServiceProvider services, DiscordSocketClient client, InteractionService interactionService)
     {
         _logger = Serilog.Log.ForContext<DiscordClientService>();
         _client = client;
+        _services = services;
         _interactionService = interactionService;
         configuration.Bind(DiscordConfiguration.Name, _configuration);
 
@@ -26,8 +28,9 @@ public sealed class DiscordClientService
         _interactionService.Log += Log;
 
         _client.Ready += Ready;
+        _client.InteractionCreated += Interaction;
     }
-    
+
     // TODO: check if I have to call this
     public async Task Start()
     {
@@ -78,5 +81,11 @@ public sealed class DiscordClientService
     private async Task Ready()
     {
         await _interactionService.RegisterCommandsGloballyAsync();
+    }
+    
+    private async Task Interaction(SocketInteraction arg)
+    {
+        var ctx = new SocketInteractionContext(_client, arg);
+        var result = await _interactionService.ExecuteCommandAsync(ctx, _services);
     }
 }
