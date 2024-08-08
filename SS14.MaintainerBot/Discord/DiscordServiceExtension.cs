@@ -4,6 +4,7 @@ using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
 using Serilog;
+using SS14.MaintainerBot.Discord.DiscordCommands;
 
 namespace SS14.MaintainerBot.Discord;
 
@@ -30,6 +31,11 @@ public static class DiscordServiceExtension
         collection.AddSingleton(interactionConfig);
         collection.AddSingleton<InteractionService>();
         collection.AddSingleton<DiscordClientService>();
+        
+        
+        collection.AddSingleton<ManagementModule>();
+        collection.AddSingleton<DiscordTemplateService>();
+        collection.AddSingleton<DiscordInteractionHandler>();
     }
 
     public static async Task UseDiscordClient(this WebApplication app)
@@ -39,6 +45,9 @@ public static class DiscordServiceExtension
         var assembly = Assembly.GetExecutingAssembly();
         var interactionService = app.Services.GetRequiredService<InteractionService>();
         await interactionService.AddModulesAsync(assembly, app.Services);
+
+        var interactionHandler = app.Services.GetRequiredService<DiscordInteractionHandler>();
+        interactionHandler.Init();
         
         await client.Start();
     }

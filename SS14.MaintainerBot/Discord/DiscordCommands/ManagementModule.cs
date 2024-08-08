@@ -67,14 +67,14 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
         var model = new StatusResponseModel
         {
             RepositoryName = githubRepository?.Name ?? "",
-            RepositoryUrl = githubRepository?.Name ?? "",
+            RepositoryUrl = githubRepository?.HtmlUrl ?? "",
             FailedCount = failedCount,
             ScheduledCount = scheduledCount,
             UnscheduledCount = unscheduledCount
         };
         
         var content = await _templateService.RenderTemplate("status_response", model, _serverConfiguration.Language);
-        await ModifyOriginalResponseAsync(p => p.Content = content);
+        await ModifyOriginalResponseAsync(p => p.Content = content );
     }
 
     private class StatusResponseModel

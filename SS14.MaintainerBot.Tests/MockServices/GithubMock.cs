@@ -45,4 +45,9 @@ public class GithubMock : IGithubApiService
     {
         throw new NotImplementedException();
     }
+
+    public Task<Repository?> GetRepository(InstallationIdentifier installation)
+    {
+        throw new NotImplementedException();
+    }
 }

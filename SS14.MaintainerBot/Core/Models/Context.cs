@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SS14.MaintainerBot.Core.Models.Entities;
+using SS14.MaintainerBot.Discord.Entities;
 using SS14.MaintainerBot.Github.Entities;
 
 namespace SS14.MaintainerBot.Core.Models;
@@ -11,6 +12,8 @@ public class Context : DbContext
     public DbSet<PullRequestComment>? PullRequestComment { get; set; }
     
     public DbSet<Reviewer>? Reviewer { get; set; }
+    
+    public DbSet<DiscordMessage>? DiscordMessage { get; set; }
     
     public Context(DbContextOptions<Context> options) : base(options) {}
 

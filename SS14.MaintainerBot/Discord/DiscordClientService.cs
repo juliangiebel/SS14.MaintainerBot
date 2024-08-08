@@ -9,8 +9,9 @@ namespace SS14.MaintainerBot.Discord;
 
 public sealed class DiscordClientService
 {
+    public DiscordSocketClient Client { get; }
+    
     private readonly DiscordConfiguration _configuration = new();
-    private readonly DiscordSocketClient _client;
     private readonly InteractionService _interactionService;
     private readonly IServiceProvider _services;
     private readonly Serilog.ILogger _logger;
@@ -20,17 +21,16 @@ public sealed class DiscordClientService
     public DiscordClientService(IConfiguration configuration, IServiceProvider services, DiscordSocketClient client, InteractionService interactionService)
     {
         _logger = Serilog.Log.ForContext<DiscordClientService>();
-        _client = client;
+        Client = client;
         _services = services;
         _interactionService = interactionService;
         configuration.Bind(DiscordConfiguration.Name, _configuration);
 
-        _client.Log += Log;
+        Client.Log += Log;
         _interactionService.Log += Log;
 
-        _client.Ready += Ready;
-        _client.InteractionCreated += Interaction;
-        _client.ButtonExecuted += ButtonExecuted;
+        Client.Ready += Ready;
+        Client.InteractionCreated += Interaction;
 
         _interactionService.InteractionExecuted += InteractionExecuted;
     }
@@ -45,8 +45,8 @@ public sealed class DiscordClientService
             return;
         }
         
-        await _client.LoginAsync(TokenType.Bot, _configuration.Token);
-        await _client.StartAsync();
+        await Client.LoginAsync(TokenType.Bot, _configuration.Token);
+        await Client.StartAsync();
         Enabled = true;
     }
 
@@ -56,7 +56,7 @@ public sealed class DiscordClientService
         if (!Enabled)
             return;
         
-        var guild = _client.GetGuild(guildId);
+        var guild = Client.GetGuild(guildId);
         var channel = guild.GetForumChannel(_configuration.Guilds[guildId].ForumChannelId);
 
         var row = new ActionRowBuilder()
@@ -95,7 +95,7 @@ public sealed class DiscordClientService
     
     private async Task Interaction(SocketInteraction arg)
     {
-        var ctx = new SocketInteractionContext(_client, arg);
+        var ctx = new SocketInteractionContext(Client, arg);
         if (!_configuration.Guilds.ContainsKey(ctx.Guild.Id))
         {
             await ctx.Interaction.RespondAsync(
@@ -111,14 +111,14 @@ public sealed class DiscordClientService
     
     private Task InteractionExecuted(ICommandInfo? commandInfo, IInteractionContext ctx, IResult result)
     {
-        if (result.IsSuccess)
+        if (commandInfo == null || result.IsSuccess)
             return Task.CompletedTask;
 
-        if (commandInfo == null)
+        /*if (commandInfo == null)
         {
             _logger.Error("Error while handling interaction: {ErrorMessage}", result.ErrorReason);
             return Task.CompletedTask;
-        }
+        }*/
         
         _logger.Error(
             "Error while executing interaction [{CommandName}]: {ErrorMessage}",
@@ -127,22 +127,5 @@ public sealed class DiscordClientService
 
         ctx.Interaction.ModifyOriginalResponseAsync(p => p.Content = "Error while processing slash command.");
         return Task.CompletedTask;
-    }
-    
-    
-    private async Task ButtonExecuted(SocketMessageComponent arg)
-    {
-        switch (arg.Data.CustomId)
-        {
-            case "stop-merge":
-                var modal = new ModalBuilder()
-                    .WithCustomId("test-modal")
-                    .WithTitle("Stop automatic merge")
-                    .AddTextInput("Reason", "test-input", TextInputStyle.Paragraph)
-                    .Build();
-                
-                await arg.RespondWithModalAsync(modal);
-                break;
-        }
     }
 }

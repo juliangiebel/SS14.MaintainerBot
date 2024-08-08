@@ -94,8 +94,6 @@ builder.Services.AddGithubTemplating();
 
 // Discord
 builder.Services.AddDiscordClient();
-builder.Services.AddSingleton<ManagementModule>();
-builder.Services.AddSingleton<DiscordTemplateService>();
 
 // Scheduler
 builder.Services.AddScheduler();
