@@ -30,11 +30,11 @@ public sealed class DiscordClientService
 
         _client.Ready += Ready;
         _client.InteractionCreated += Interaction;
+        _client.ButtonExecuted += ButtonExecuted;
 
         _interactionService.InteractionExecuted += InteractionExecuted;
     }
-
-
+    
     // TODO: check if I have to call this
     public async Task Start()
     {
@@ -59,9 +59,15 @@ public sealed class DiscordClientService
         var guild = _client.GetGuild(guildId);
         var channel = guild.GetForumChannel(_configuration.Guilds[guildId].ForumChannelId);
 
+        var row = new ActionRowBuilder()
+            .WithButton("Stop Merge", "stop-merge", ButtonStyle.Danger);
+        var component = new ComponentBuilder().AddRow(row).Build();
+        
         var post = await channel.CreatePostAsync(
             title,
-            text: "wawa"
+            text: "wawa",
+            components: component
+            
         );
     }
     
@@ -103,10 +109,16 @@ public sealed class DiscordClientService
         await _interactionService.ExecuteCommandAsync(ctx, _services);
     }
     
-    private Task InteractionExecuted(ICommandInfo commandInfo, IInteractionContext ctx, IResult result)
+    private Task InteractionExecuted(ICommandInfo? commandInfo, IInteractionContext ctx, IResult result)
     {
         if (result.IsSuccess)
             return Task.CompletedTask;
+
+        if (commandInfo == null)
+        {
+            _logger.Error("Error while handling interaction: {ErrorMessage}", result.ErrorReason);
+            return Task.CompletedTask;
+        }
         
         _logger.Error(
             "Error while executing interaction [{CommandName}]: {ErrorMessage}",
@@ -115,5 +127,22 @@ public sealed class DiscordClientService
 
         ctx.Interaction.ModifyOriginalResponseAsync(p => p.Content = "Error while processing slash command.");
         return Task.CompletedTask;
+    }
+    
+    
+    private async Task ButtonExecuted(SocketMessageComponent arg)
+    {
+        switch (arg.Data.CustomId)
+        {
+            case "stop-merge":
+                var modal = new ModalBuilder()
+                    .WithCustomId("test-modal")
+                    .WithTitle("Stop automatic merge")
+                    .AddTextInput("Reason", "test-input", TextInputStyle.Paragraph)
+                    .Build();
+                
+                await arg.RespondWithModalAsync(modal);
+                break;
+        }
     }
 }

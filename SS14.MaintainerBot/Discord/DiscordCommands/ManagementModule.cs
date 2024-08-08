@@ -4,6 +4,7 @@ using FastEndpoints;
 using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Core.Models.Types;
+using SS14.MaintainerBot.Discord.Commands;
 using SS14.MaintainerBot.Discord.Configuration;
 using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Types;
@@ -37,10 +38,20 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
         return Task.CompletedTask;
     }
 
+    [SlashCommand("test", "Command for testing various discord related things during development")]
+    public async Task TestCommand()
+    {
+        await DeferAsync(ephemeral: true);
+    
+        var command = new CreateForumPost(Context.Guild.Id, "Test Post");
+        await command.ExecuteAsync();
+
+        await ModifyOriginalResponseAsync(p => p.Content = "Done!");
+    }
+    
     [SlashCommand("status", "Shows the bots status")]
     public async Task StatusCommand()
     {
-        // This is for testing slash commands
         await DeferAsync();
 
         var guildConfig = _config.Guilds[Context.Guild.Id];
