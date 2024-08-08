@@ -1,6 +1,7 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
 using Serilog;
+using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Core.Models.Entities;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
@@ -23,12 +24,18 @@ public sealed class GithubCommandHandler :
     private readonly IGithubApiService _githubApiService;
     private readonly GithubBotConfiguration _configuration = new();
     private readonly GithubDbRepository _dbRepository;
+    private readonly MergeProcessRepository _mergeProcessRepository;
 
-    public GithubCommandHandler(IGithubApiService githubApiService, IConfiguration configuration, GithubDbRepository dbRepository)
+    public GithubCommandHandler(
+        IGithubApiService githubApiService, 
+        IConfiguration configuration, 
+        GithubDbRepository dbRepository, 
+        MergeProcessRepository mergeProcessRepository)
     {
         configuration.Bind(GithubBotConfiguration.Name, _configuration);
         _githubApiService = githubApiService;
         _dbRepository = dbRepository;
+        _mergeProcessRepository = mergeProcessRepository;
     }
 
     public async Task<PullRequestComment?> ExecuteAsync(CreateOrUpdateComment command, CancellationToken ct)
@@ -100,9 +107,12 @@ public sealed class GithubCommandHandler :
 
     public async Task<MergeProcess?> ExecuteAsync(CreateMergeProcess command, CancellationToken ct)
     {
-        var mergeProcess = await _dbRepository.CreateMergeProcessForPr(
-            command.Installation.RepositoryId,
-            command.PullRequestNumber,
+        var pullRequest = await _dbRepository.GetPullRequest(command.Installation.RepositoryId, command.PullRequestNumber, ct);
+        if (pullRequest == null)
+            return null;
+        
+        var mergeProcess = await _mergeProcessRepository.CreateMergeProcessForPr(
+            pullRequest,
             command.Status,
             command.MergeDelay,
             ct);
@@ -125,7 +135,7 @@ public sealed class GithubCommandHandler :
     
     public async Task<MergeProcess?> ExecuteAsync(ChangeMergeProcessStatus command, CancellationToken ct)
     {
-        var mergeProcess = await _dbRepository.SetMergeProcessStatusForPr(
+        var mergeProcess = await _mergeProcessRepository.SetMergeProcessStatusForPr(
             command.Installation.RepositoryId, 
             command.PullRequestNumber, 
             command.Status, 

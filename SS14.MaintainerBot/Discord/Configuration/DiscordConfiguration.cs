@@ -7,5 +7,5 @@ public sealed class DiscordConfiguration
     public string? Token { get; set; }
 
     public Dictionary<ulong, GuildConfiguration> Guilds { get; set; } = new();
-
+    public string? TemplateLocation { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
 using Octokit;
+using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Entities;
@@ -35,6 +36,7 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         // TODO: handle status ChangeRequested in database
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
+        var mergeRepository = scope.Resolve<MergeProcessRepository>();
 
         var payload = eventModel.Payload;
         var status = Enum.Parse<ReviewStatus>(payload.Review.State.Val().ToString());
@@ -52,12 +54,16 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
         switch (eventModel.Payload.Review.State.Val())
         {
-            case PullRequestReviewState.Approved: await OnPrApproved(eventModel, dbRepository, ct); break;
+            case PullRequestReviewState.Approved: await OnPrApproved(eventModel, dbRepository, mergeRepository, ct); break;
             case PullRequestReviewState.ChangesRequested: await OnPrChangesRequested(eventModel, dbRepository, ct); break;
         }
     }
 
-    private async Task OnPrApproved(ReviewEvent eventModel, GithubDbRepository dbRepository, CancellationToken ct)
+    private async Task OnPrApproved(
+        ReviewEvent eventModel, 
+        GithubDbRepository dbRepository, 
+        MergeProcessRepository mergeProcessRepository, 
+        CancellationToken ct)
     {
         var payload = eventModel.Payload;
         if (!_verificationService.CheckGeneralRequirements(payload.PullRequest))
@@ -81,7 +87,7 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
 
         await dbRepository.DbContext.SaveChangesAsync(ct);
         
-        var hasMergeProcess = await dbRepository.HasMergeProcessForPr(pullRequest.Id, ct);
+        var hasMergeProcess = await mergeProcessRepository.HasMergeProcessForPr(pullRequest.Id, ct);
         
         if (hasMergeProcess)
         {

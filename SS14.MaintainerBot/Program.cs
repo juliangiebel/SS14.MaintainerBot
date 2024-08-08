@@ -87,6 +87,7 @@ builder.Services.AddSingleton<RateLimiterService>();
 // Github
 //builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
 builder.Services.AddScoped<GithubDbRepository>();
+builder.Services.AddScoped<MergeProcessRepository>();
 builder.Services.AddSingleton<IGithubApiService, GithubApiService>();
 builder.Services.AddSingleton<PrVerificationService>();
 builder.Services.AddGithubTemplating();
@@ -94,6 +95,7 @@ builder.Services.AddGithubTemplating();
 // Discord
 builder.Services.AddDiscordClient();
 builder.Services.AddSingleton<ManagementModule>();
+builder.Services.AddSingleton<DiscordTemplateService>();
 
 // Scheduler
 builder.Services.AddScheduler();
@@ -153,6 +155,9 @@ if (serverConfiguration.CorsOrigins != null)
     app.UseCors();
 
 await app.PreloadGithubTemplates();
+
+var templateService = app.Services.GetService<DiscordTemplateService>();
+await templateService?.LoadTemplates()!;
 
 if (serverConfiguration is { EnableSentry: true, EnableSentryTracing: true })
     app.UseSentryTracing();

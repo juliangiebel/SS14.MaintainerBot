@@ -49,7 +49,7 @@ public class GithubWebhookTests(MaintainerBotFixture fixture) : TestBase<Maintai
         pullRequest.Comments.Should().HaveCount(1);
         pullRequest.Reviewers.Should().HaveCount(1);
 
-        var mergeProcess = await fixture.GithubDbRepository.GetMergeProcessForPr(pullRequest.Id, new CancellationToken());
+        var mergeProcess = await fixture.MergeProcessRepository.GetMergeProcessForPr(pullRequest.Id, new CancellationToken());
 
         mergeProcess.Should().NotBeNull();
         mergeProcess!.Status.Should().Be(MergeProcessStatus.NotStarted);
@@ -77,7 +77,7 @@ public class GithubWebhookTests(MaintainerBotFixture fixture) : TestBase<Maintai
         pullRequest.Should().NotBeNull();
         pullRequest!.Reviewers.Should().HaveCount(2);
 
-        var mergeProcess = await fixture.GithubDbRepository.GetMergeProcessForPr(pullRequest.Id, new CancellationToken());
+        var mergeProcess = await fixture.MergeProcessRepository.GetMergeProcessForPr(pullRequest.Id, new CancellationToken());
 
         mergeProcess.Should().NotBeNull();
         mergeProcess!.Status.Should().Be(MergeProcessStatus.Scheduled);

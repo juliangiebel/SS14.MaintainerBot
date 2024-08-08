@@ -21,8 +21,11 @@ AllowedHosts: "*"
 
 Github:
   AppName: "SS14.MaintainerBot"
-  TemplateLocation: "Resources/Templates"
-  
+  TemplateLocation: "Resources/Templates/Github"
+
+Discord:
+  TemplateLocation: "Resources/Templates/Discord"
+
 Server:
   Language: "en-US"
   

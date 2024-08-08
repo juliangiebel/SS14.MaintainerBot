@@ -1,8 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Serilog;
 using SS14.MaintainerBot.Core.Models;
-using SS14.MaintainerBot.Core.Models.Entities;
-using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Entities;
 using SS14.MaintainerBot.Github.Types;
 
@@ -37,64 +34,6 @@ public sealed class GithubDbRepository
         return await DbContext.PullRequestComment!
             .Where(prc => prc.PullRequestId == pullRequestId && prc.CommentType == type)
             .AnyAsync(ct);
-    }
-
-    public async Task<MergeProcess?> CreateMergeProcessForPr(
-        long repositoryId, 
-        int pullRequestNumber, 
-        MergeProcessStatus status, 
-        TimeSpan mergeDelay,
-        CancellationToken ct)
-    {
-        var pullRequest = await GetPullRequest(repositoryId, pullRequestNumber, ct);
-        if (pullRequest == null)
-        {
-            Log.Error("error");
-            return null;
-        }
-
-        var mergeProcess = new MergeProcess
-        {
-            PullRequestId = pullRequest.Id,
-            PullRequest = pullRequest,
-            MergeDelay = mergeDelay,
-            Status = status
-        };
-
-        DbContext.MergeProcesses!.Add(mergeProcess);
-        return mergeProcess;
-    }
-
-    public async Task<MergeProcess?> SetMergeProcessStatusForPr(long repositoryId, int pullRequestNumber, MergeProcessStatus status, CancellationToken ct)
-    {
-        var process = await DbContext.MergeProcesses!
-            .Where(mp => mp.PullRequest.GhRepoId == repositoryId && mp.PullRequest.Number == pullRequestNumber)
-            .SingleOrDefaultAsync(ct);
-
-        if (process == null)
-            return null;
-
-        process.Status = status;
-
-        if (status == MergeProcessStatus.Scheduled)
-            process.StartedOn = DateTime.UtcNow;
-        
-        DbContext.Update(process);
-        return process;
-    }
-
-    public async Task<bool> HasMergeProcessForPr(Guid pullRequestId, CancellationToken ct)
-    {
-        return await DbContext.MergeProcesses!
-            .Where(mp => mp.PullRequestId == pullRequestId)
-            .AnyAsync(ct);
-    }
-
-    public async Task<MergeProcess?> GetMergeProcessForPr(Guid pullRequestId, CancellationToken ct)
-    {
-        return await DbContext.MergeProcesses!
-            .Where(mp => mp.PullRequestId == pullRequestId)
-            .SingleOrDefaultAsync(ct);
     }
     
     public async Task UpdatePullRequestReviewers(long repositoryId, int pullRequestNumber, long userId, string userName, ReviewStatus status, CancellationToken ct)

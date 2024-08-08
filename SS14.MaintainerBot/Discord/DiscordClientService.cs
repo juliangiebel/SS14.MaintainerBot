@@ -3,6 +3,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Serilog.Events;
 using SS14.MaintainerBot.Discord.Configuration;
+using IResult = Discord.Interactions.IResult;
 
 namespace SS14.MaintainerBot.Discord;
 
@@ -29,7 +30,10 @@ public sealed class DiscordClientService
 
         _client.Ready += Ready;
         _client.InteractionCreated += Interaction;
+
+        _interactionService.InteractionExecuted += InteractionExecuted;
     }
+
 
     // TODO: check if I have to call this
     public async Task Start()
@@ -86,6 +90,30 @@ public sealed class DiscordClientService
     private async Task Interaction(SocketInteraction arg)
     {
         var ctx = new SocketInteractionContext(_client, arg);
-        var result = await _interactionService.ExecuteCommandAsync(ctx, _services);
+        if (!_configuration.Guilds.ContainsKey(ctx.Guild.Id))
+        {
+            await ctx.Interaction.RespondAsync(
+                @"```ansi
+[2;31m[0m[1;2m[0m[1;2m[1;31m⚠[0m Maintainer bot isn't configured for this server.[0m
+```");
+    
+            return;
+        }
+        
+        await _interactionService.ExecuteCommandAsync(ctx, _services);
+    }
+    
+    private Task InteractionExecuted(ICommandInfo commandInfo, IInteractionContext ctx, IResult result)
+    {
+        if (result.IsSuccess)
+            return Task.CompletedTask;
+        
+        _logger.Error(
+            "Error while executing interaction [{CommandName}]: {ErrorMessage}",
+            commandInfo.Name,
+            result.ErrorReason);
+
+        ctx.Interaction.ModifyOriginalResponseAsync(p => p.Content = "Error while processing slash command.");
+        return Task.CompletedTask;
     }
 }

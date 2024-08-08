@@ -43,6 +43,8 @@ public interface IGithubApiService
     Task<RepositoriesResponse> GetRepositories(long installationId);
 
     Task<PullRequest?> GetPullRequest(InstallationIdentifier installation, int pullRequestNumber);
+
+    Task<Repository?> GetRepository(InstallationIdentifier installation);
 }
 
 public sealed class GithubApiService : AbstractGithubApiService, IGithubApiService
@@ -147,5 +149,14 @@ public sealed class GithubApiService : AbstractGithubApiService, IGithubApiServi
         
         var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
         return await client.PullRequest.Get(installation.RepositoryId, pullRequestNumber);
+    }
+
+    public async Task<Repository?> GetRepository(InstallationIdentifier installation)
+    {
+        if (!await CheckRateLimit(installation))
+            return null;
+
+        var client = await ClientStore!.GetInstallationClient(installation.InstallationId);
+        return await client.Repository.Get(installation.RepositoryId);
     }
 }

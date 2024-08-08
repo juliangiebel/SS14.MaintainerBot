@@ -18,6 +18,7 @@ public class MaintainerBotFixture : AppFixture<AssemblyMarker>
 
     public readonly SimpleJsonSerializer Serializer = new();
     public GithubDbRepository GithubDbRepository { get; private set; } = default!;
+    public MergeProcessRepository MergeProcessRepository { get; private set; } = default!;
 
 
     public string OpenPullRequest { get; private set; } = default!;
@@ -59,6 +60,7 @@ public class MaintainerBotFixture : AppFixture<AssemblyMarker>
     protected override async Task SetupAsync()
     {
         GithubDbRepository = Services.GetRequiredService<GithubDbRepository>();
+        MergeProcessRepository = Services.GetRequiredService<MergeProcessRepository>();
 
         OpenPullRequest = await LoadWebhookTemplate("OpenPullRequestMatchingRequirements");
         MaintainerApproved = await LoadWebhookTemplate("MaintainerReviewApproved");
