@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Rest;
 using FastEndpoints;
 using JetBrains.Annotations;
 using SS14.MaintainerBot.Discord.Commands;
@@ -27,16 +28,18 @@ public sealed class DiscordCommandHandler :
         var component = BuildButtons(command.Buttons);
         
         var post = await _discordClientService.CreateForumThread(command.GuildId, command.Title, command.Content, component);
-
-        if (post == null)
+        
+        if (!post.HasValue)
             return null;
 
+        var (channel, messageId) = post.Value;
+        
         var message = new DiscordMessage
         {
             MergeProcessId = command.MergeProcessId,
-            GuildId = post.GuildId,
-            ChannelId = post.ParentChannelId,
-            MessageId = post.Id
+            GuildId = channel.GuildId,
+            ChannelId = channel.Id,
+            MessageId = messageId
         };
 
         await dbRepository.DbContext.AddAsync(message, ct);

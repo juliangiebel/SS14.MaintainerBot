@@ -43,7 +43,7 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
         [Summary(description: "The guid of the merge process to test the discord integration with")] string processId
         )
     {
-        if (!Guid.TryParseExact(processId, "D", out var guid))
+        /*if (!Guid.TryParseExact(processId, "D", out var guid))
         {
             await RespondAsync("Invalid merge process GUID", ephemeral: true);
             return;
@@ -56,7 +56,17 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
 
         await command.ExecuteAsync();
 
-        await ModifyOriginalResponseAsync(p => p.Content = "Done!");
+        await ModifyOriginalResponseAsync(p => p.Content = "Done!");*/
+        
+        await DeferAsync(ephemeral: false);
+
+        var channel = Context.Guild.GetForumChannel(_config.Guilds[Context.Guild.Id].ForumChannelId);
+        var post = await channel.CreatePostAsync("Test Post", text: "Test Content");
+
+        var message = (await post.GetMessagesAsync(1).FirstAsync()).First();
+        
+        await ModifyOriginalResponseAsync(p => p.Content = $"ParentChannelId: {post.ParentChannelId}, ThreadChannelId: {post.Id}, MessageId: {message.Id}");
+
     }
     
     [SlashCommand("status", "Shows the bots status")]

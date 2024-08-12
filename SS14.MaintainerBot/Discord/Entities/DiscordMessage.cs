@@ -3,6 +3,7 @@ using SS14.MaintainerBot.Core.Models.Entities;
 
 namespace SS14.MaintainerBot.Discord.Entities;
 
+// TODO: Add unique index on guild id and message id
 [PrimaryKey(nameof(GuildId), nameof(ChannelId), nameof(MessageId))]
 public class DiscordMessage
 {

@@ -52,7 +52,7 @@ public sealed class DiscordClientService
     }
 
     // TODO: Finish implementing this method
-    public async Task<RestThreadChannel?> CreateForumThread(
+    public async Task<(RestThreadChannel channel, ulong messageId)?> CreateForumThread(
         ulong guildId, 
         string title, 
         string content, 
@@ -73,8 +73,26 @@ public sealed class DiscordClientService
             components: component,
             tags: tagInstances
         );
+
+        // Get the actual post message
+        var message = (await post.GetMessagesAsync(1).FirstAsync()).First();
         
-        return post;
+        return (post, message.Id);
+    }
+    
+    public async Task<(SocketThreadChannel channel, IMessage message)?> GetThread(ulong guildId, ulong channelId, ulong messageId)
+    {
+        if (!Enabled)
+            return null;
+
+        var guild = Client.GetGuild(guildId);
+        var channel = guild.GetThreadChannel(channelId);
+        if (channel == null)
+            return null;
+        
+        var message = await channel.GetMessageAsync(messageId);
+        
+        return message != null ? (channel, message) : null;
     }
     
     public async Task Log(LogMessage message)

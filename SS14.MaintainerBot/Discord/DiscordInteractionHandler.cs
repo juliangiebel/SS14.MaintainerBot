@@ -1,7 +1,10 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using FastEndpoints;
+using SS14.MaintainerBot.Core.Models.Types;
+using SS14.MaintainerBot.Discord.Configuration;
 using SS14.MaintainerBot.Github.Commands;
+using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Discord;
 
@@ -11,14 +14,16 @@ public class DiscordInteractionHandler
     private const string StopMergeModal = "stop-merge-modal";
     private const string ReasonInput = "reason";
     
-    
+    private readonly DiscordConfiguration _config = new();
+
     private readonly DiscordClientService _clientService;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public DiscordInteractionHandler(DiscordClientService clientService, IServiceScopeFactory scopeFactory)
+    public DiscordInteractionHandler(DiscordClientService clientService, IServiceScopeFactory scopeFactory, IConfiguration configuration)
     {
         _clientService = clientService;
         _scopeFactory = scopeFactory;
+        configuration.Bind(DiscordConfiguration.Name, _config);
     }
 
     public void Init()
@@ -53,17 +58,25 @@ public class DiscordInteractionHandler
     
     private async Task StopMergeSubmitted(DiscordDbRepository dbRepository, SocketModal socketModal)
     {
+        if (!socketModal.GuildId.HasValue)
+            return;
+        
         var reason = socketModal.Data.Components.ToList().First().Value;
         await socketModal.RespondAsync($"{socketModal.User.Mention} canceled the automatic merge process.\n**Reason**\n{reason}");
 
-        var message = await dbRepository.GetMessage(socketModal.GuildId!.Value, socketModal.Message.Id, new CancellationToken());
+        var message = await dbRepository.GetMessageIncludingPr(socketModal.GuildId!.Value, socketModal.Message.Id, new CancellationToken());
 
         if (message == null)
             return;
-        
-        //var command = new ChangeMergeProcessStatus()
-        
-        
+
+        var config = _config.Guilds[socketModal.GuildId.Value];
+        var command = new ChangeMergeProcessStatus(
+            new InstallationIdentifier(config.GithubInstallationId, config.GithubRepositoryId),
+            message.MergeProcess.PullRequest.Number,
+            MergeProcessStatus.Interrupted);
+
+        await command.ExecuteAsync();
+
         /*var previousButton = (ButtonComponent) socketModal
             .Message.Components.First()
             .Components.First(c => c.CustomId == StopMergeButton);
@@ -80,8 +93,10 @@ public class DiscordInteractionHandler
     {
         if (!arg.GuildId.HasValue)
             return;
-        
-        
+
+        var allowedRoles = _config.Guilds[arg.GuildId.Value].MaintainerRoles;
+        if (!CheckGuildRoles(arg.GuildId, arg.User.Id, allowedRoles))
+            return;
         
         var modal = new ModalBuilder()
             .WithCustomId(StopMergeModal)
@@ -92,16 +107,13 @@ public class DiscordInteractionHandler
         await arg.RespondWithModalAsync(modal);
     }
 
-    private async Task<bool> CheckGuildRoles(ulong? guildId, ulong userId)
+    private bool CheckGuildRoles(ulong? guildId, ulong userId, List<ulong> roles)
     {
         if (!guildId.HasValue)
             return false;
 
         var guild = _clientService.Client.GetGuild(guildId.Value);
         var user = guild.GetUser(userId);
-        if (user == null)
-            return false;
-        
-        //user.Roles.Any(role => role.)
+        return user != null && user.Roles.Any(role => roles.Contains(role.Id));
     }
 }

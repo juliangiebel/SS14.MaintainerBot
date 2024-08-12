@@ -19,4 +19,21 @@ public class DiscordDbRepository
             .Where(m => m.GuildId == guildId && m.MessageId == messageId)
             .SingleOrDefaultAsync(ct);
     }
+    
+    public async Task<DiscordMessage?> GetMessageIncludingPr(ulong guildId, ulong messageId, CancellationToken ct)
+    {
+        return await DbContext.DiscordMessage!
+            .Include(m => m.MergeProcess.PullRequest)
+            .Where(m => m.GuildId == guildId && m.MessageId == messageId)
+            .SingleOrDefaultAsync(ct);
+    }
+    
+    
+    public async Task<DiscordMessage?> GetMessageFromProcess(ulong guildId, Guid processId, CancellationToken ct)
+    {
+        return await DbContext.DiscordMessage!
+            .Where(m => m.GuildId == guildId && m.MergeProcessId == processId)
+            .SingleOrDefaultAsync(ct);
+    }
+
 }
