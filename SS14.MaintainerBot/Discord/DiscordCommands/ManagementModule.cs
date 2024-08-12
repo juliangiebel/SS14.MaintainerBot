@@ -33,17 +33,27 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
 
     public override Task BeforeExecuteAsync(ICommandInfo command)
     {
-        var scope = _scopeFactory.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         _dbRepository = scope.Resolve<MergeProcessRepository>();
         return Task.CompletedTask;
     }
 
     [SlashCommand("test", "Command for testing various discord related things during development")]
-    public async Task TestCommand()
+    public async Task TestCommand(
+        [Summary(description: "The guid of the merge process to test the discord integration with")] string processId
+        )
     {
+        if (!Guid.TryParseExact(processId, "D", out var guid))
+        {
+            await RespondAsync("Invalid merge process GUID", ephemeral: true);
+            return;
+        }
+        
         await DeferAsync(ephemeral: true);
-    
-        var command = new CreateForumPost(Context.Guild.Id, "Test Post");
+
+        var button = new ButtonDefinition("Stop Merge", DiscordInteractionHandler.StopMergeButton, ButtonStyle.Danger);
+        var command = new CreateOrUpdateForumPost(guid,  Context.Guild.Id, "Test Post", "wawa", new List<ButtonDefinition>{button});
+
         await command.ExecuteAsync();
 
         await ModifyOriginalResponseAsync(p => p.Content = "Done!");

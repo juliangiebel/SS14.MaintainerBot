@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Serilog.Events;
 using SS14.MaintainerBot.Discord.Configuration;
@@ -51,24 +52,29 @@ public sealed class DiscordClientService
     }
 
     // TODO: Finish implementing this method
-    public async Task CreateForumThread(ulong guildId, string title)
+    public async Task<RestThreadChannel?> CreateForumThread(
+        ulong guildId, 
+        string title, 
+        string content, 
+        MessageComponent? component, 
+        List<string>? tags = null)
     {
         if (!Enabled)
-            return;
+            return null;
         
         var guild = Client.GetGuild(guildId);
         var channel = guild.GetForumChannel(_configuration.Guilds[guildId].ForumChannelId);
 
-        var row = new ActionRowBuilder()
-            .WithButton("Stop Merge", "stop-merge", ButtonStyle.Danger);
-        var component = new ComponentBuilder().AddRow(row).Build();
+        var tagInstances = tags != null ? channel.Tags.Where(tag => tags.Contains(tag.Name)).ToArray() : null;
         
         var post = await channel.CreatePostAsync(
             title,
-            text: "wawa",
-            components: component
-            
+            text: content,
+            components: component,
+            tags: tagInstances
         );
+        
+        return post;
     }
     
     public async Task Log(LogMessage message)

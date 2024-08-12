@@ -36,6 +36,7 @@ public static class DiscordServiceExtension
         collection.AddSingleton<ManagementModule>();
         collection.AddSingleton<DiscordTemplateService>();
         collection.AddSingleton<DiscordInteractionHandler>();
+        collection.AddScoped<DiscordDbRepository>();
     }
 
     public static async Task UseDiscordClient(this WebApplication app)

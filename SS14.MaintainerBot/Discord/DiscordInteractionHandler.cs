@@ -7,7 +7,7 @@ namespace SS14.MaintainerBot.Discord;
 
 public class DiscordInteractionHandler
 {
-    private const string StopMergeButton = "stop-merge";
+    public const string StopMergeButton = "stop-merge";
     private const string StopMergeModal = "stop-merge-modal";
     private const string ReasonInput = "reason";
     
@@ -78,6 +78,11 @@ public class DiscordInteractionHandler
 
     private async Task StopMergePressed(SocketMessageComponent arg)
     {
+        if (!arg.GuildId.HasValue)
+            return;
+        
+        
+        
         var modal = new ModalBuilder()
             .WithCustomId(StopMergeModal)
             .WithTitle("Stop automatic merge")
@@ -85,5 +90,18 @@ public class DiscordInteractionHandler
             .Build();
                 
         await arg.RespondWithModalAsync(modal);
+    }
+
+    private async Task<bool> CheckGuildRoles(ulong? guildId, ulong userId)
+    {
+        if (!guildId.HasValue)
+            return false;
+
+        var guild = _clientService.Client.GetGuild(guildId.Value);
+        var user = guild.GetUser(userId);
+        if (user == null)
+            return false;
+        
+        //user.Roles.Any(role => role.)
     }
 }

@@ -4,7 +4,7 @@ using SS14.MaintainerBot.Discord.Entities;
 
 namespace SS14.MaintainerBot.Discord.Commands;
 
-public record CreateForumPost (
+public record CreateOrUpdateForumPost (
     Guid MergeProcessId,
     ulong GuildId,
     string Title,
@@ -12,4 +12,4 @@ public record CreateForumPost (
     List<ButtonDefinition>? Buttons = null
     ) : ICommand<DiscordMessage?>;
     
-public record ButtonDefinition(string Title, string Id, ButtonStyle Style);
+public record ButtonDefinition(string Title, string Id, ButtonStyle Style = ButtonStyle.Primary, bool Disabled = false);
