@@ -95,6 +95,12 @@ public sealed class DiscordTemplateService
         return await template.RenderAsync(context);
     }
 
+    /// <summary>
+    /// Turns a date time into a discord timestamp string
+    /// </summary>
+    /// <remarks>
+    /// For supported display styles see: <a href="https://discord.com/developers/docs/reference#message-formatting-timestamp-styles">Discord developer docs</a>
+    /// </remarks>
     private ValueTask<FluidValue> DiscordDateFiler(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         if (!input.TryGetDateTimeInput(context, out var dateTime))
@@ -102,6 +108,6 @@ public sealed class DiscordTemplateService
 
         var displayType =  arguments.At(0).ToStringValue();
         var timestamp = dateTime.ToUnixTimeSeconds();
-        return StringValue.Create(string.IsNullOrWhiteSpace(displayType) ? $"<t:{timestamp}>" : $"<t:{timestamp}{displayType}:{displayType}>");
+        return StringValue.Create(string.IsNullOrWhiteSpace(displayType) ? $"<t:{timestamp}>" : $"<t:{timestamp}:{displayType}>");
     }
 }

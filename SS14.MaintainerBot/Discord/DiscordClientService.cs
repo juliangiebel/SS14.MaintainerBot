@@ -152,4 +152,15 @@ public sealed class DiscordClientService
         ctx.Interaction.ModifyOriginalResponseAsync(p => p.Content = "Error while processing slash command.");
         return Task.CompletedTask;
     }
+
+    public async Task UpdateForumPostTags(ulong guildId, ulong channelId, List<string> tags)
+    {
+        var guild = Client.GetGuild(guildId);
+        var channel = guild.GetForumChannel(_configuration.Guilds[guildId].ForumChannelId);
+        
+        var tagInstances = channel.Tags.Where(tag => tags.Contains(tag.Name)).Select(t => t.Id);
+        
+        var thread = guild.GetThreadChannel(channelId);
+        await thread.ModifyAsync(t => t.AppliedTags = Optional.Create(tagInstances));
+    }
 }

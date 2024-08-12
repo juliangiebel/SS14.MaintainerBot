@@ -23,25 +23,25 @@ public sealed class GithubCommandHandler :
 {
     private readonly IGithubApiService _githubApiService;
     private readonly GithubBotConfiguration _configuration = new();
-    private readonly GithubDbRepository _dbRepository;
-    private readonly MergeProcessRepository _mergeProcessRepository;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public GithubCommandHandler(
         IGithubApiService githubApiService, 
-        IConfiguration configuration, 
-        GithubDbRepository dbRepository, 
-        MergeProcessRepository mergeProcessRepository)
+        IConfiguration configuration,
+        IServiceScopeFactory scopeFactory)
     {
         configuration.Bind(GithubBotConfiguration.Name, _configuration);
         _githubApiService = githubApiService;
-        _dbRepository = dbRepository;
-        _mergeProcessRepository = mergeProcessRepository;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<PullRequestComment?> ExecuteAsync(CreateOrUpdateComment command, CancellationToken ct)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        
         PullRequestComment? comment;
-        var comments = await _dbRepository.GetCommentsOfType(command.PullRequestId, command.Type, ct);
+        var comments = await dbRepository.GetCommentsOfType(command.PullRequestId, command.Type, ct);
 
         if (comments.Count > 0)
         {
@@ -52,7 +52,7 @@ public sealed class GithubCommandHandler :
             comment = await CreateComment(command, ct);
         }
         
-        await _dbRepository.DbContext.SaveChangesAsync(ct);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
         return comment;
     }
 
@@ -80,7 +80,10 @@ public sealed class GithubCommandHandler :
             CommentType = PrCommentType.Introduction
         };
 
-        await _dbRepository.DbContext.PullRequestComment!.AddAsync(comment, ct);
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        
+        await dbRepository.DbContext.PullRequestComment!.AddAsync(comment, ct);
         return comment;
     }
     
@@ -107,17 +110,21 @@ public sealed class GithubCommandHandler :
 
     public async Task<MergeProcess?> ExecuteAsync(CreateMergeProcess command, CancellationToken ct)
     {
-        var pullRequest = await _dbRepository.GetPullRequest(command.Installation.RepositoryId, command.PullRequestNumber, ct);
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        var mergeProcessRepository = scope.Resolve<MergeProcessRepository>();
+        
+        var pullRequest = await dbRepository.GetPullRequest(command.Installation.RepositoryId, command.PullRequestNumber, ct);
         if (pullRequest == null)
             return null;
         
-        var mergeProcess = await _mergeProcessRepository.CreateMergeProcessForPr(
+        var mergeProcess = await mergeProcessRepository.CreateMergeProcessForPr(
             pullRequest,
             command.Status,
             command.MergeDelay,
             ct);
 
-        await _dbRepository.DbContext.SaveChangesAsync(ct);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
 
         if (mergeProcess == null)
             return null;
@@ -135,14 +142,18 @@ public sealed class GithubCommandHandler :
     
     public async Task<MergeProcess?> ExecuteAsync(ChangeMergeProcessStatus command, CancellationToken ct)
     {
-        var mergeProcess = await _mergeProcessRepository.SetMergeProcessStatusForPr(
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        var mergeProcessRepository = scope.Resolve<MergeProcessRepository>();
+        
+        var mergeProcess = await mergeProcessRepository.SetMergeProcessStatusForPr(
             command.Installation.RepositoryId, 
             command.PullRequestNumber, 
             command.Status, 
             ct
         );
 
-        await _dbRepository.DbContext.SaveChangesAsync(ct);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
         
         if (mergeProcess is null)
         {
@@ -165,7 +176,10 @@ public sealed class GithubCommandHandler :
 
     public async Task<PullRequest?> ExecuteAsync(SavePullRequest command, CancellationToken ct)
     {
-        var pullRequest = await _dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        
+        var pullRequest = await dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
         if (pullRequest is not null and not {Status: PullRequestStatus.Closed})
             return null;
         
@@ -177,19 +191,25 @@ public sealed class GithubCommandHandler :
             Status = PullRequestStatus.Open
         };
 
-        _dbRepository.DbContext.PullRequest!.Update(pullRequest);
-        await _dbRepository.DbContext.SaveChangesAsync(ct);
+        dbRepository.DbContext.PullRequest!.Update(pullRequest);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
 
         return pullRequest;
     }
 
     public async Task<PullRequest?> ExecuteAsync(GetPullRequest command, CancellationToken ct)
     {
-        return await _dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        
+        return await dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
     }
 
     public async Task<List<PullRequest>> ExecuteAsync(GetPullRequests command, CancellationToken ct)
     {
-        return await _dbRepository.GetPullRequests(command.Installation.RepositoryId, ct);
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<GithubDbRepository>();
+        
+        return await dbRepository.GetPullRequests(command.Installation.RepositoryId, ct);
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace SS14.MaintainerBot.Github.Entities;
+﻿namespace SS14.MaintainerBot.Github.Types;
 
 public enum PullRequestStatus
 {

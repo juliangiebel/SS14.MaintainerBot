@@ -3,7 +3,10 @@ using Discord.WebSocket;
 using FastEndpoints;
 using SS14.MaintainerBot.Core.Models.Entities;
 using SS14.MaintainerBot.Core.Models.Types;
+using SS14.MaintainerBot.Discord.Commands;
 using SS14.MaintainerBot.Discord.Configuration;
+using SS14.MaintainerBot.Discord.Entities;
+using SS14.MaintainerBot.Github;
 using SS14.MaintainerBot.Github.Events;
 
 namespace SS14.MaintainerBot.Discord.EventHandlers;
@@ -14,8 +17,10 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
     
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly DiscordClientService _client;
-    
-    public ProcessStatusChangeHandler(IServiceScopeFactory scopeFactory, IConfiguration configuration, DiscordClientService client)
+    public ProcessStatusChangeHandler(
+        IServiceScopeFactory scopeFactory, 
+        IConfiguration configuration, 
+        DiscordClientService client)
     {
         _scopeFactory = scopeFactory;
         _client = client;
@@ -33,11 +38,13 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
                continue;
                
            var message = await dbRepository.GetMessageFromProcess(id, eventModel.MergeProcess.Id , ct);
-
-           // TODO: Change this to create a new forum post when there is none already
-           if (message == null)
+           if (message == null && !guildConfig.CreatePostBeforeApproval && eventModel.MergeProcess.Status == MergeProcessStatus.NotStarted)
                continue;
 
+           message ??= await CreatePost(id, eventModel, ct);
+           if (message == null)
+               continue;
+           
            var thread = await _client.GetThread(message.GuildId, message.ChannelId, message.MessageId);
            if (!thread.HasValue)
             return;
@@ -72,7 +79,27 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
             p.Components = new ComponentBuilder().WithButton(button).Build();
         });*/
     }
-    
+
+    private async Task<DiscordMessage?> CreatePost(ulong id, MergeProcessStatusChangedEvent eventModel, CancellationToken ct)
+    {
+        var command = new CreateMergeProcessPost(id, eventModel.Installation, eventModel.MergeProcess, eventModel.PullRequestNumber);
+        return await command.ExecuteAsync(ct);
+
+        /*var pullRequest = await _githubApiService.GetPullRequest(eventModel.Installation, eventModel.PullRequestNumber);
+        if (pullRequest == null)
+            return null;
+
+        var template = _templateService.RenderTemplate()
+
+        var command = new CreateOrUpdateForumPost(
+            eventModel.MergeProcess.Id,
+            id,
+            $"{pullRequest.Number} - {pullRequest.Title}",
+            );
+
+        return await command.ExecuteAsync(ct);*/
+    }
+
     /// <summary>
     /// Gets called when the merge process has the `scheduled` status and can be interrupted
     /// </summary>

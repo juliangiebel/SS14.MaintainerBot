@@ -9,7 +9,8 @@ public record CreateOrUpdateForumPost (
     ulong GuildId,
     string Title,
     string Content,
-    List<ButtonDefinition>? Buttons = null
+    List<ButtonDefinition>? Buttons = null,
+    List<string>? Tags = null
     ) : ICommand<DiscordMessage?>;
     
 public record ButtonDefinition(string Title, string Id, ButtonStyle Style = ButtonStyle.Primary, bool Disabled = false);

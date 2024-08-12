@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using JetBrains.Annotations;
 using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Entities;
 
@@ -25,4 +26,7 @@ public class MergeProcess
 
     [Required]
     public MergeProcessStatus Status { get; set; } = MergeProcessStatus.Scheduled;
+
+    [UsedImplicitly]
+    public DateTime ScheduledOn => StartedOn.Add(MergeDelay);
 }

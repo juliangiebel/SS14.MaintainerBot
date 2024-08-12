@@ -2,24 +2,72 @@
 using Discord.Rest;
 using FastEndpoints;
 using JetBrains.Annotations;
+using Microsoft.OpenApi.Extensions;
+using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Discord.Commands;
+using SS14.MaintainerBot.Discord.Configuration;
 using SS14.MaintainerBot.Discord.Entities;
+using SS14.MaintainerBot.Discord.Types;
+using SS14.MaintainerBot.Github;
 
 namespace SS14.MaintainerBot.Discord;
 
 [UsedImplicitly]
 public sealed class DiscordCommandHandler :
-    ICommandHandler<CreateOrUpdateForumPost, DiscordMessage?>
+    ICommandHandler<CreateMergeProcessPost, DiscordMessage?>,
+    ICommandHandler<CreateOrUpdateForumPost, DiscordMessage?>,
+    ICommandHandler<UpdateMergeProcessPostTags, DiscordMessage?>
 {
+    private readonly ServerConfiguration _serverConfig = new();
+    private readonly DiscordConfiguration _config = new();
+    
     private readonly DiscordClientService _discordClientService;
+    private readonly IGithubApiService _githubApiService;
+    private readonly DiscordTemplateService _templateService;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public DiscordCommandHandler(DiscordClientService discordClientService, IServiceScopeFactory scopeFactory)
+    public DiscordCommandHandler(
+        DiscordClientService discordClientService, 
+        IServiceScopeFactory scopeFactory, 
+        IGithubApiService githubApiService, 
+        DiscordTemplateService templateService,
+        IConfiguration configuration)
     {
         _discordClientService = discordClientService;
         _scopeFactory = scopeFactory;
+        _githubApiService = githubApiService;
+        _templateService = templateService;
+        configuration.Bind(ServerConfiguration.Name, _serverConfig);
+        configuration.Bind(DiscordConfiguration.Name, _config);
     }
 
+    
+    public async Task<DiscordMessage?> ExecuteAsync(CreateMergeProcessPost command, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<DiscordDbRepository>();
+        
+        var pullRequest = await _githubApiService.GetPullRequest(command.Installation, command.PullRequestNumber);
+        if (pullRequest == null)
+            return null;
+
+        var model = new ProcessPostTemplateModel(pullRequest, command.MergeProcess);
+        var template = await _templateService.RenderTemplate("merge_process_post", model, _serverConfig.Language);
+
+        var labels = pullRequest.Labels.Select(l => l.Name);
+        var tags = _config.Guilds[command.GuildId].GetLabelTags(labels);
+        
+        return await CreateForumPost(
+            command.GuildId,
+            $"{pullRequest.Number} - {pullRequest.Title}",
+            template,
+            command.MergeProcess.Id,
+            dbRepository, 
+            null,
+            tags,
+            ct);
+    }
+    
     public async Task<DiscordMessage?> ExecuteAsync(CreateOrUpdateForumPost command, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -27,7 +75,28 @@ public sealed class DiscordCommandHandler :
         
         var component = BuildButtons(command.Buttons);
         
-        var post = await _discordClientService.CreateForumThread(command.GuildId, command.Title, command.Content, component);
+        return await CreateForumPost(
+            command.GuildId,
+            command.Title,
+            command.Content,
+            command.MergeProcessId,
+            dbRepository, 
+            component,
+            command.Tags,
+            ct);
+    }
+
+    private async Task<DiscordMessage?> CreateForumPost(
+        ulong guildId,
+        string title,
+        string content,
+        Guid mergeProcessId,
+        DiscordDbRepository dbRepository, 
+        MessageComponent? component,
+        List<string>? tags,
+        CancellationToken ct)
+    {
+        var post = await _discordClientService.CreateForumThread(guildId, title, content, component, tags);
         
         if (!post.HasValue)
             return null;
@@ -36,13 +105,14 @@ public sealed class DiscordCommandHandler :
         
         var message = new DiscordMessage
         {
-            MergeProcessId = command.MergeProcessId,
+            MergeProcessId = mergeProcessId,
             GuildId = channel.GuildId,
             ChannelId = channel.Id,
             MessageId = messageId
         };
 
         await dbRepository.DbContext.AddAsync(message, ct);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
         return message;
     }
 
@@ -64,5 +134,27 @@ public sealed class DiscordCommandHandler :
         }
 
         return builder.Build();
+    }
+
+    public async Task<DiscordMessage?> ExecuteAsync(UpdateMergeProcessPostTags command, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<DiscordDbRepository>();
+
+        var message = await dbRepository.GetMessageFromProcess(command.GuildId, command.MergeProcessId, ct);
+        if (message == null)
+            return null;
+        
+        var config = _config.Guilds[command.GuildId];
+        var tags = config.GetLabelTags(command.GithubLabels);
+
+        if (config.StatusTags.TryGetValue(command.PullRequestStatus, out var statusTag))
+            tags.Add(statusTag);
+        
+        if (config.ProcessTags.TryGetValue(command.ProcessStatus, out var processTag))
+            tags.Add(processTag);
+
+        await _discordClientService.UpdateForumPostTags(message.GuildId, message.ChannelId, tags);
+        return message;
     }
 }

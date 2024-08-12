@@ -7,6 +7,7 @@ using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Discord.Commands;
 using SS14.MaintainerBot.Discord.Configuration;
 using SS14.MaintainerBot.Github;
+using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Discord.DiscordCommands;
@@ -17,7 +18,6 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
     private readonly DiscordConfiguration _config = new();
     private readonly ServerConfiguration _serverConfiguration = new();
     
-    private MergeProcessRepository _dbRepository = default!;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly DiscordTemplateService _templateService;
     private readonly IGithubApiService _githubApiService;
@@ -33,54 +33,48 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
 
     public override Task BeforeExecuteAsync(ICommandInfo command)
     {
-        using var scope = _scopeFactory.CreateScope();
-        _dbRepository = scope.Resolve<MergeProcessRepository>();
+        
         return Task.CompletedTask;
     }
 
     [SlashCommand("test", "Command for testing various discord related things during development")]
     public async Task TestCommand(
-        [Summary(description: "The guid of the merge process to test the discord integration with")] string processId
+        [Summary(description: "The number of the pull request to test the discord integration with")] int number
         )
     {
-        /*if (!Guid.TryParseExact(processId, "D", out var guid))
-        {
-            await RespondAsync("Invalid merge process GUID", ephemeral: true);
-            return;
-        }
-        
         await DeferAsync(ephemeral: true);
 
-        var button = new ButtonDefinition("Stop Merge", DiscordInteractionHandler.StopMergeButton, ButtonStyle.Danger);
-        var command = new CreateOrUpdateForumPost(guid,  Context.Guild.Id, "Test Post", "wawa", new List<ButtonDefinition>{button});
+        var guildConfig = _config.Guilds[Context.Guild.Id];
+        var command = new ChangeMergeProcessStatus(
+            new InstallationIdentifier(guildConfig.GithubInstallationId, guildConfig.GithubRepositoryId),
+            number,
+            MergeProcessStatus.Scheduled);
 
-        await command.ExecuteAsync();
-
-        await ModifyOriginalResponseAsync(p => p.Content = "Done!");*/
-        
-        await DeferAsync(ephemeral: false);
-
-        var channel = Context.Guild.GetForumChannel(_config.Guilds[Context.Guild.Id].ForumChannelId);
-        var post = await channel.CreatePostAsync("Test Post", text: "Test Content");
-
-        var message = (await post.GetMessagesAsync(1).FirstAsync()).First();
-        
-        await ModifyOriginalResponseAsync(p => p.Content = $"ParentChannelId: {post.ParentChannelId}, ThreadChannelId: {post.Id}, MessageId: {message.Id}");
-
+        var result = await command.ExecuteAsync();
+        await ModifyOriginalResponseAsync(p =>
+        {
+            p.Content = result != null
+                ? $"Set process {result.Id} to scheduled"
+                : "Failed to process status";
+        });
+    
     }
     
     [SlashCommand("status", "Shows the bots status")]
     public async Task StatusCommand()
     {
         await DeferAsync();
-
+        
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<MergeProcessRepository>();
+        
         var guildConfig = _config.Guilds[Context.Guild.Id];
         var installation = new InstallationIdentifier(guildConfig.GithubInstallationId, guildConfig.GithubRepositoryId);
         var ct = new CancellationToken();
 
-        var failedCount = await _dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.Failed);
-        var scheduledCount = await _dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.Scheduled);
-        var unscheduledCount = await _dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.NotStarted, MergeProcessStatus.Interrupted);
+        var failedCount = await dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.Failed);
+        var scheduledCount = await dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.Scheduled);
+        var unscheduledCount = await dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.NotStarted, MergeProcessStatus.Interrupted);
 
         var githubRepository = await _githubApiService.GetRepository(installation);
         

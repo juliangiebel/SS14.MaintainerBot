@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using SS14.MaintainerBot.Github.Types;
 
 // ReSharper disable CollectionNeverUpdated.Global
 // ReSharper disable PropertyCanBeMadeInitOnly.Global

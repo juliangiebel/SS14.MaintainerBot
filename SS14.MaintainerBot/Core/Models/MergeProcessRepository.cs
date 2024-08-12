@@ -65,6 +65,17 @@ public class MergeProcessRepository
             .Where(mp => mp.PullRequestId == pullRequestId)
             .SingleOrDefaultAsync(ct);
     }
+    
+    public async Task<MergeProcess?> GetMergeProcessForPr(InstallationIdentifier installation, int number, CancellationToken ct)
+    {
+        return await DbContext.MergeProcesses!
+            .Include(mp => mp.PullRequest)
+            .Where(mp => mp.PullRequest.InstallationId == installation.InstallationId 
+                         && mp.PullRequest.GhRepoId == installation.RepositoryId 
+                         && mp.PullRequest.Number == number)
+            .SingleOrDefaultAsync(ct);
+    }
+
 
     public async Task<int> CountMergeProcesses(InstallationIdentifier installation, CancellationToken ct, params MergeProcessStatus[] statuses)
     {
