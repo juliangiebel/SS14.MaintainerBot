@@ -1,8 +1,6 @@
 ﻿using Discord;
-using Discord.WebSocket;
 using FastEndpoints;
 using JetBrains.Annotations;
-using SS14.MaintainerBot.Core.Models.Entities;
 using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Discord.Commands;
 using SS14.MaintainerBot.Discord.Configuration;
@@ -19,10 +17,10 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
     private readonly DiscordConfiguration _configuration = new();
     
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly GithubApiService _githubApiService;
+    private readonly IGithubApiService _githubApiService;
     public ProcessStatusChangeHandler(
         IServiceScopeFactory scopeFactory, 
-        IConfiguration configuration, GithubApiService githubApiService)
+        IConfiguration configuration, IGithubApiService githubApiService)
     {
         _scopeFactory = scopeFactory;
         _githubApiService = githubApiService;
