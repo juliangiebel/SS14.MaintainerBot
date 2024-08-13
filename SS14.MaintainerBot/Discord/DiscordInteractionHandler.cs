@@ -10,9 +10,9 @@ namespace SS14.MaintainerBot.Discord;
 
 public class DiscordInteractionHandler
 {
-    public const string StopMergeButton = "stop-merge";
-    private const string StopMergeModal = "stop-merge-modal";
-    private const string ReasonInput = "reason";
+    public const string StopMergeButtonId = "stop-merge";
+    private const string StopMergeModalId = "stop-merge-modal";
+    private const string ReasonInputId = "reason";
     
     private readonly DiscordConfiguration _config = new();
 
@@ -39,7 +39,7 @@ public class DiscordInteractionHandler
         
         switch (arg.Data.CustomId)
         {
-            case StopMergeModal: await StopMergeSubmitted(dbRepository, arg); break;
+            case StopMergeModalId: await StopMergeSubmitted(dbRepository, arg); break;
         }
     }
 
@@ -52,7 +52,7 @@ public class DiscordInteractionHandler
         
         switch (arg.Data.CustomId)
         {
-            case StopMergeButton: await StopMergePressed(arg); break;
+            case StopMergeButtonId: await StopMergePressed(arg); break;
         }
     }
     
@@ -99,9 +99,9 @@ public class DiscordInteractionHandler
             return;
         
         var modal = new ModalBuilder()
-            .WithCustomId(StopMergeModal)
+            .WithCustomId(StopMergeModalId)
             .WithTitle("Stop automatic merge")
-            .AddTextInput("Reason", ReasonInput, TextInputStyle.Paragraph)
+            .AddTextInput("Reason", ReasonInputId, TextInputStyle.Paragraph)
             .Build();
                 
         await arg.RespondWithModalAsync(modal);

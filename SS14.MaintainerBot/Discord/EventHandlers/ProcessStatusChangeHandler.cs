@@ -1,29 +1,31 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using FastEndpoints;
+using JetBrains.Annotations;
 using SS14.MaintainerBot.Core.Models.Entities;
 using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Discord.Commands;
 using SS14.MaintainerBot.Discord.Configuration;
 using SS14.MaintainerBot.Discord.Entities;
 using SS14.MaintainerBot.Github;
+using SS14.MaintainerBot.Github.Commands;
 using SS14.MaintainerBot.Github.Events;
 
 namespace SS14.MaintainerBot.Discord.EventHandlers;
 
+[UsedImplicitly]
 public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChangedEvent>
 {
     private readonly DiscordConfiguration _configuration = new();
     
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly DiscordClientService _client;
+    private readonly GithubApiService _githubApiService;
     public ProcessStatusChangeHandler(
         IServiceScopeFactory scopeFactory, 
-        IConfiguration configuration, 
-        DiscordClientService client)
+        IConfiguration configuration, GithubApiService githubApiService)
     {
         _scopeFactory = scopeFactory;
-        _client = client;
+        _githubApiService = githubApiService;
         configuration.Bind(DiscordConfiguration.Name, _configuration);
     }
 
@@ -41,86 +43,70 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
            if (message == null && !guildConfig.CreatePostBeforeApproval && eventModel.MergeProcess.Status == MergeProcessStatus.NotStarted)
                continue;
 
-           message ??= await CreatePost(id, eventModel, ct);
-           if (message == null)
-               continue;
+           var button = eventModel.MergeProcess.Status switch
+           {
+               MergeProcessStatus.NotStarted => BuildInterruptButton(true),
+               MergeProcessStatus.Interrupted => BuildInterruptButton(true),
+               MergeProcessStatus.Scheduled => BuildInterruptButton(false),
+               _ => null
+           };
            
-           var thread = await _client.GetThread(message.GuildId, message.ChannelId, message.MessageId);
-           if (!thread.HasValue)
+           if (message == null)
+           {
+               await CreatePost(id, eventModel, button, ct);
+           }
+           else
+           {
+               await UpdatePost(eventModel, button, message, ct);
+           }
+
+           var githubPullRequest = await _githubApiService.GetPullRequest(eventModel.Installation, eventModel.PullRequestNumber);
+
+           if (githubPullRequest == null) 
+               continue;
+
+           var pullRequest = await new GetPullRequest(eventModel.Installation, eventModel.PullRequestNumber).ExecuteAsync(ct);
+           if (pullRequest == null)
             return;
 
-           // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
-           switch (eventModel.MergeProcess.Status)
-           {
-               case MergeProcessStatus.NotStarted:
-               case MergeProcessStatus.Interrupted:
-                   await HandleUnscheduled(thread.Value, eventModel.MergeProcess);
-                   break;
-               
-               case MergeProcessStatus.Scheduled:
-                   await HandleScheduled(thread.Value, eventModel.MergeProcess);
-                   break;
-               
-               default:
-                   await HandleFinal(thread.Value, eventModel.MergeProcess);
-                   break;
-           }
+
+           var updateTagsCommand = new UpdateMergeProcessPostTags(
+               eventModel.MergeProcess.Id,
+               id,
+               githubPullRequest.Labels.Select(l => l.Name),
+               eventModel.MergeProcess.Status,
+               pullRequest.Status
+           );
+
+           await updateTagsCommand.ExecuteAsync(ct);
        }
-       
-       
-       /*var previousButton = (ButtonComponent) socketModal
-            .Message.Components.First()
-            .Components.First(c => c.CustomId == StopMergeButton);
-
-        var button = new ButtonBuilder(previousButton).WithDisabled(true);
-
-        await socketModal.Message.ModifyAsync(p =>
-        {
-            p.Components = new ComponentBuilder().WithButton(button).Build();
-        });*/
-    }
-
-    private async Task<DiscordMessage?> CreatePost(ulong id, MergeProcessStatusChangedEvent eventModel, CancellationToken ct)
-    {
-        var command = new CreateMergeProcessPost(id, eventModel.Installation, eventModel.MergeProcess, eventModel.PullRequestNumber);
-        return await command.ExecuteAsync(ct);
-
-        /*var pullRequest = await _githubApiService.GetPullRequest(eventModel.Installation, eventModel.PullRequestNumber);
-        if (pullRequest == null)
-            return null;
-
-        var template = _templateService.RenderTemplate()
-
-        var command = new CreateOrUpdateForumPost(
-            eventModel.MergeProcess.Id,
-            id,
-            $"{pullRequest.Number} - {pullRequest.Title}",
-            );
-
-        return await command.ExecuteAsync(ct);*/
-    }
-
-    /// <summary>
-    /// Gets called when the merge process has the `scheduled` status and can be interrupted
-    /// </summary>
-    private async Task HandleScheduled((SocketThreadChannel channel, IMessage message) thread, MergeProcess process)
-    {
-        return;
     }
     
-    /// <summary>
-    /// Gets called when the merge process is in a state that can be set to scheduled. Like `Unscheduled` or `Interrupted`
-    /// </summary>
-    private async Task HandleUnscheduled((SocketThreadChannel channel, IMessage message) thread, MergeProcess process)
+    private MessageComponent BuildInterruptButton(bool disabled)
     {
-        return;
+        var button = new ButtonBuilder()
+            .WithLabel("Stop Merge")
+            .WithCustomId(DiscordInteractionHandler.StopMergeButtonId)
+            .WithStyle(ButtonStyle.Danger)
+            .WithDisabled(disabled);
+        
+        return new ComponentBuilder().WithButton(button).Build();
     }
     
-    /// <summary>
-    /// Gets called when the merge process entered a state that can't be changed back from. Like `Merged` or `Failed`
-    /// </summary>
-    private async Task HandleFinal((SocketThreadChannel channel, IMessage message) thread, MergeProcess process)
+    private async Task CreatePost(ulong id, MergeProcessStatusChangedEvent eventModel, MessageComponent? button, CancellationToken ct)
+    { 
+        var command = new CreateMergeProcessPost(id, eventModel.Installation, eventModel.MergeProcess, eventModel.PullRequestNumber, button);
+        await command.ExecuteAsync(ct);
+    }
+    
+    
+    private async Task UpdatePost(
+        MergeProcessStatusChangedEvent eventModel, 
+        MessageComponent? button,
+        DiscordMessage message, 
+        CancellationToken ct)
     {
-        return;
+        var command = new UpdateMergeProcessPost(message, eventModel.Installation, eventModel.MergeProcess, eventModel.PullRequestNumber, button);
+        await command.ExecuteAsync(ct);
     }
 }

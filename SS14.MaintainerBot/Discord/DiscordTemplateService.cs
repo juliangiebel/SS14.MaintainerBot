@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using Fluid;
 using Fluid.Values;
+using Microsoft.OpenApi.Extensions;
 using Serilog;
 using SS14.MaintainerBot.Discord.Configuration;
 using ILogger = Serilog.ILogger;
@@ -91,8 +92,14 @@ public sealed class DiscordTemplateService
         };
 
         context.Options.Filters.AddFilter("discord_timestamp", DiscordDateFiler);
+        context.Options.ValueConverters.Add(EnumConverter);
         context.SetValue("current_datetime", DateTime.Now);
         return await template.RenderAsync(context);
+    }
+
+    private object? EnumConverter(object arg)
+    {
+        return arg is not Enum value ? null : value.GetDisplayName();
     }
 
     /// <summary>

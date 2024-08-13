@@ -16,6 +16,7 @@ namespace SS14.MaintainerBot.Discord;
 public sealed class DiscordCommandHandler :
     ICommandHandler<CreateMergeProcessPost, DiscordMessage?>,
     ICommandHandler<CreateOrUpdateForumPost, DiscordMessage?>,
+    ICommandHandler<UpdateMergeProcessPost>,
     ICommandHandler<UpdateMergeProcessPostTags, DiscordMessage?>
 {
     private readonly ServerConfiguration _serverConfig = new();
@@ -63,9 +64,21 @@ public sealed class DiscordCommandHandler :
             template,
             command.MergeProcess.Id,
             dbRepository, 
-            null,
+            command.Button,
             tags,
             ct);
+    }
+    
+    public async Task ExecuteAsync(UpdateMergeProcessPost command, CancellationToken ct)
+    {
+        var pullRequest = await _githubApiService.GetPullRequest(command.Installation, command.PullRequestNumber);
+        if (pullRequest == null)
+            return;
+
+        var model = new ProcessPostTemplateModel(pullRequest, command.MergeProcess);
+        var template = await _templateService.RenderTemplate("merge_process_post", model, _serverConfig.Language);
+
+        await UpdateForumPost(command.Message, template, command.Button);
     }
     
     public async Task<DiscordMessage?> ExecuteAsync(CreateOrUpdateForumPost command, CancellationToken ct)
@@ -86,6 +99,28 @@ public sealed class DiscordCommandHandler :
             ct);
     }
 
+    public async Task<DiscordMessage?> ExecuteAsync(UpdateMergeProcessPostTags command, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<DiscordDbRepository>();
+
+        var message = await dbRepository.GetMessageFromProcess(command.GuildId, command.MergeProcessId, ct);
+        if (message == null)
+            return null;
+        
+        var config = _config.Guilds[command.GuildId];
+        var tags = config.GetLabelTags(command.GithubLabels);
+
+        if (config.StatusTags.TryGetValue(command.PullRequestStatus, out var statusTag))
+            tags.Add(statusTag);
+        
+        if (config.ProcessTags.TryGetValue(command.ProcessStatus, out var processTag))
+            tags.Add(processTag);
+
+        await _discordClientService.UpdateForumPostTags(message.GuildId, message.ChannelId, tags);
+        return message;
+    }
+    
     private async Task<DiscordMessage?> CreateForumPost(
         ulong guildId,
         string title,
@@ -115,7 +150,22 @@ public sealed class DiscordCommandHandler :
         await dbRepository.DbContext.SaveChangesAsync(ct);
         return message;
     }
+    
+    private async Task UpdateForumPost(DiscordMessage message, string content, MessageComponent? component)
+    {
+        var thread = await _discordClientService.GetThread(message.GuildId, message.ChannelId, message.MessageId);
+        if (!thread.HasValue)
+            return;
 
+        var (channel, post) = thread.Value;
+
+        await channel.ModifyMessageAsync(post.Id, p =>
+        {
+            p.Content = content;
+            p.Components = Optional.Create(component);
+        });
+    }
+    
     private MessageComponent? BuildButtons(List<ButtonDefinition>? definitions)
     {
         if (definitions == null)
@@ -134,27 +184,5 @@ public sealed class DiscordCommandHandler :
         }
 
         return builder.Build();
-    }
-
-    public async Task<DiscordMessage?> ExecuteAsync(UpdateMergeProcessPostTags command, CancellationToken ct)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var dbRepository = scope.Resolve<DiscordDbRepository>();
-
-        var message = await dbRepository.GetMessageFromProcess(command.GuildId, command.MergeProcessId, ct);
-        if (message == null)
-            return null;
-        
-        var config = _config.Guilds[command.GuildId];
-        var tags = config.GetLabelTags(command.GithubLabels);
-
-        if (config.StatusTags.TryGetValue(command.PullRequestStatus, out var statusTag))
-            tags.Add(statusTag);
-        
-        if (config.ProcessTags.TryGetValue(command.ProcessStatus, out var processTag))
-            tags.Add(processTag);
-
-        await _discordClientService.UpdateForumPostTags(message.GuildId, message.ChannelId, tags);
-        return message;
     }
 }

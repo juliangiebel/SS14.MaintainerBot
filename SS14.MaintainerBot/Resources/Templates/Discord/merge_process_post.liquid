@@ -1,3 +1,4 @@
 ﻿{{ PullRequest.Body }}
-
+{% if MergeProcess.Status == "Scheduled" %}
 -# This PR will be merged {{ MergeProcess.ScheduledOn |  discord_timestamp:"R" }}
+{% endif %}
