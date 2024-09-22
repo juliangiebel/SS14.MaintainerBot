@@ -74,7 +74,7 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         if (pullRequest is null or {Status: PullRequestStatus.Closed} or {Status: PullRequestStatus.Approved})
             return;
 
-        var changeRequests = await dbRepository.ReviewCountByStatus(pullRequest.Id, ReviewStatus.ChangeRequested, ct);
+        var changeRequests = await dbRepository.ReviewCountByStatus(pullRequest.Id, ReviewStatus.ChangesRequested, ct);
         if (changeRequests > 0)
             return;
         
@@ -119,8 +119,11 @@ public class ReviewHandler : IEventHandler<ReviewEvent>
         if (pullRequest is null or {Status: PullRequestStatus.Closed})
             return;
         
-        // TODO: Set status ChangeRequested
-        
+        pullRequest.Status = PullRequestStatus.ChangesRequested;
+        dbRepository.DbContext.Update(pullRequest);
+
+        await dbRepository.DbContext.SaveChangesAsync(ct);
+
         var changeStatusCommand = new ChangeMergeProcessStatus(
             new InstallationIdentifier(payload.Installation.Id, payload.Repository.Id),
             pullRequest.Number,

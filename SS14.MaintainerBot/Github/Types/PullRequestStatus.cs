@@ -4,6 +4,6 @@ public enum PullRequestStatus
 {
     Open,
     Approved,
-    ChangeRequested,
+    ChangesRequested,
     Closed
 }

@@ -1,8 +1,6 @@
 ﻿using Discord;
-using Discord.Rest;
 using FastEndpoints;
 using JetBrains.Annotations;
-using Microsoft.OpenApi.Extensions;
 using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Discord.Commands;
 using SS14.MaintainerBot.Discord.Configuration;
@@ -57,7 +55,7 @@ public sealed class DiscordCommandHandler :
 
         var labels = pullRequest.Labels.Select(l => l.Name);
         var tags = _config.Guilds[command.GuildId].GetLabelTags(labels);
-        
+        //https://opengraph.githubassets.com/<any_hash_number>/<owner>/<repo>/pull/<pr_number>
         return await CreateForumPost(
             command.GuildId,
             $"{pullRequest.Number} - {pullRequest.Title}",
