@@ -1,5 +1,5 @@
 ﻿# SS14.MaintainerBot
-*Description here*
+A github and discord bot that handles creating discord threads for PRs and automatically merges PRs that got approved if no one stopped the automatic merge through github or the discord thread.
 
 ## Docs for used libraries
 - [FastEndpoints](https://fast-endpoints.com/)
