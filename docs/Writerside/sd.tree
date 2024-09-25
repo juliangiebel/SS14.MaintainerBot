@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="sd"
+                 name="SS14.MaintainerBot Documentation"
+                 start-page="quickstart.md">
+
+    <toc-element topic="quickstart.md"/>
+    <toc-element topic="Configuration-Reference.topic">
+        <toc-element topic="Discord-Configuration.md"/>
+        <toc-element topic="Github-Bot-Configuration.md"/>
+        <toc-element topic="Scheduler-Configuration.md"/>
+        <toc-element topic="Github-Configuration.md"/>
+        <toc-element topic="Server-Configuration.md"/>
+    </toc-element>
+</instance-profile>
