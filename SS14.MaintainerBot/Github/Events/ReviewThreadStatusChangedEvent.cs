@@ -4,9 +4,9 @@ using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Github.Events;
 
-public record MergeProcessStatusChangedEvent
+public record ReviewThreadStatusChangedEvent
 (
     InstallationIdentifier Installation,
     int PullRequestNumber,
-    MergeProcess MergeProcess
+    ReviewThread ReviewThread
 ) : IEvent;

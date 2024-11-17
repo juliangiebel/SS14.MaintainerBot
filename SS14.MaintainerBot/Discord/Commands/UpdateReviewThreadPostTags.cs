@@ -5,10 +5,10 @@ using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Discord.Commands;
 
-public record UpdateMergeProcessPostTags(
-    Guid MergeProcessId,
+public record UpdateReviewThreadPostTags(
+    Guid ReviewThreadId,
     ulong GuildId,
     IEnumerable<string> GithubLabels,
-    MergeProcessStatus ProcessStatus,
+    MaintainerReviewStatus ProcessStatus,
     PullRequestStatus PullRequestStatus
     ) : ICommand<DiscordMessage?>;

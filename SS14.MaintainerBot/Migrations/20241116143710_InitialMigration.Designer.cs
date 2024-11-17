@@ -12,7 +12,7 @@ using SS14.MaintainerBot.Core.Models;
 namespace SS14.MaintainerBot.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20240802211247_InitialMigration")]
+    [Migration("20241116143710_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -24,6 +24,51 @@ namespace SS14.MaintainerBot.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("SS14.MaintainerBot.Core.Models.Entities.ReviewThread", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PullRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("StartedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PullRequestId")
+                        .IsUnique();
+
+                    b.ToTable("ReviewThread");
+                });
+
+            modelBuilder.Entity("SS14.MaintainerBot.Discord.Entities.DiscordMessage", b =>
+                {
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<decimal>("ChannelId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<decimal>("MessageId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<Guid>("ReviewThreadId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("GuildId", "ChannelId", "MessageId");
+
+                    b.HasIndex("ReviewThreadId")
+                        .IsUnique();
+
+                    b.ToTable("DiscordMessage");
+                });
 
             modelBuilder.Entity("SS14.MaintainerBot.Github.Entities.PullRequest", b =>
                 {
@@ -87,30 +132,26 @@ namespace SS14.MaintainerBot.Migrations
                     b.ToTable("Reviewer");
                 });
 
-            modelBuilder.Entity("SS14.MaintainerBot.Models.Entities.MergeProcess", b =>
+            modelBuilder.Entity("SS14.MaintainerBot.Core.Models.Entities.ReviewThread", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                    b.HasOne("SS14.MaintainerBot.Github.Entities.PullRequest", "PullRequest")
+                        .WithOne()
+                        .HasForeignKey("SS14.MaintainerBot.Core.Models.Entities.ReviewThread", "PullRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Property<TimeSpan>("MergeDelay")
-                        .HasColumnType("interval");
+                    b.Navigation("PullRequest");
+                });
 
-                    b.Property<Guid>("PullRequestId")
-                        .HasColumnType("uuid");
+            modelBuilder.Entity("SS14.MaintainerBot.Discord.Entities.DiscordMessage", b =>
+                {
+                    b.HasOne("SS14.MaintainerBot.Core.Models.Entities.ReviewThread", "ReviewThread")
+                        .WithOne()
+                        .HasForeignKey("SS14.MaintainerBot.Discord.Entities.DiscordMessage", "ReviewThreadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Property<DateTime>("StartedOn")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PullRequestId")
-                        .IsUnique();
-
-                    b.ToTable("MergeProcesses");
+                    b.Navigation("ReviewThread");
                 });
 
             modelBuilder.Entity("SS14.MaintainerBot.Github.Entities.PullRequestComment", b =>
@@ -129,17 +170,6 @@ namespace SS14.MaintainerBot.Migrations
                         .HasForeignKey("PullRequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("SS14.MaintainerBot.Models.Entities.MergeProcess", b =>
-                {
-                    b.HasOne("SS14.MaintainerBot.Github.Entities.PullRequest", "PullRequest")
-                        .WithOne()
-                        .HasForeignKey("SS14.MaintainerBot.Models.Entities.MergeProcess", "PullRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PullRequest");
                 });
 
             modelBuilder.Entity("SS14.MaintainerBot.Github.Entities.PullRequest", b =>

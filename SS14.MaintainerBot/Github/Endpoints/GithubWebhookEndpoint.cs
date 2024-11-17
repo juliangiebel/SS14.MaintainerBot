@@ -111,7 +111,6 @@ public class GithubWebhookEndpoint : EndpointWithoutRequest
         
         var excludedStates = new[]
         {
-            PullRequestReviewState.Commented, 
             PullRequestReviewState.Dismissed, 
             PullRequestReviewState.Pending
         };

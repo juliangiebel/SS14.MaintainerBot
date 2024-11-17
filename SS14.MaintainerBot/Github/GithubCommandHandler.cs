@@ -14,8 +14,8 @@ namespace SS14.MaintainerBot.Github;
 public sealed class GithubCommandHandler :
     ICommandHandler<CreateOrUpdateComment, PullRequestComment?>,
     ICommandHandler<MergePullRequest, bool>,
-    ICommandHandler<CreateMergeProcess, MergeProcess?>,
-    ICommandHandler<ChangeMergeProcessStatus, MergeProcess?>,
+    ICommandHandler<CreateOrUpdateReviewThread, ReviewThread?>,
+    ICommandHandler<ChangeReviewThreadStatus, ReviewThread?>,
     ICommandHandler<SavePullRequest, PullRequest?>,
     ICommandHandler<GetPullRequest, PullRequest?>,
     ICommandHandler<GetPullRequests, List<PullRequest>>
@@ -45,17 +45,17 @@ public sealed class GithubCommandHandler :
 
         if (comments.Count > 0)
         {
-            comment = await UpdateComment(comments.Last(), command, ct);
+            comment = await UpdateComment(dbRepository.DbContext, comments.Last(), command, ct);
         }
         else
         {
             comment = await CreateComment(command, ct);
         }
         
-        await dbRepository.DbContext.SaveChangesAsync(ct);
         return comment;
     }
 
+    /// <inheritdoc cref="MergePullRequest"/>
     public async Task<bool> ExecuteAsync(MergePullRequest command, CancellationToken ct)
     {
         return await _githubApiService.MergePullRequest(command.InstallationIdentifier, command.PullRequestNumber, mergeMethod: _configuration.MergeMethod);
@@ -83,19 +83,18 @@ public sealed class GithubCommandHandler :
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
         
-        await dbRepository.DbContext.PullRequestComment!.AddAsync(comment, ct);
+        dbRepository.DbContext.PullRequestComment!.Add(comment);
+        await dbRepository.DbContext.SaveChangesAsync(ct);
         return comment;
     }
     
     
-    private async Task<PullRequestComment?> UpdateComment(
-        PullRequestComment lastComment, 
+    private async Task<PullRequestComment?> UpdateComment(Context dbContext, PullRequestComment lastComment,
         CreateOrUpdateComment command,
         CancellationToken ct)
     {
         if (ct.IsCancellationRequested)
             return null;
-        
         
         await _githubApiService.UpdateCommentWithTemplate(
             command.InstallationIdentifier,
@@ -105,48 +104,52 @@ public sealed class GithubCommandHandler :
             model: command.Model
         );
         
+        await dbContext.SaveChangesAsync(ct);
         return lastComment;
     }
 
-    public async Task<MergeProcess?> ExecuteAsync(CreateMergeProcess command, CancellationToken ct)
+    public async Task<ReviewThread?> ExecuteAsync(CreateOrUpdateReviewThread command, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
-        var mergeProcessRepository = scope.Resolve<MergeProcessRepository>();
+        var reviewThreadRepository = scope.Resolve<ReviewThreadRepository>();
         
         var pullRequest = await dbRepository.GetPullRequest(command.Installation.RepositoryId, command.PullRequestNumber, ct);
         if (pullRequest == null)
             return null;
+
+        var reviewThread = await reviewThreadRepository.GetReviewThreadForPr(pullRequest.Id, ct);
+
+        //Skip updating the status if it didn't change
+        if (reviewThread != null && reviewThread.Status == command.Status)
+            return reviewThread;
         
-        var mergeProcess = await mergeProcessRepository.CreateMergeProcessForPr(
+        reviewThread ??= reviewThreadRepository.CreateReviewThreadForPr(
             pullRequest,
-            command.Status,
-            command.MergeDelay,
-            ct);
+            command.Status);
 
-        await dbRepository.DbContext.SaveChangesAsync(ct);
-
-        if (mergeProcess == null)
-            return null;
+        reviewThread.Status = command.Status;
         
-        var processEvent = new MergeProcessStatusChangedEvent(
+        await dbRepository.DbContext.SaveChangesAsync(ct);
+        
+        var processEvent = new ReviewThreadStatusChangedEvent(
             command.Installation,
             command.PullRequestNumber,
-            mergeProcess
+            reviewThread
         );
 
         await processEvent.PublishAsync(Mode.WaitForNone, ct);
         
-        return mergeProcess;
+        return reviewThread;
     }
     
-    public async Task<MergeProcess?> ExecuteAsync(ChangeMergeProcessStatus command, CancellationToken ct)
+    public async Task<ReviewThread?> ExecuteAsync(ChangeReviewThreadStatus command, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<GithubDbRepository>();
-        var mergeProcessRepository = scope.Resolve<MergeProcessRepository>();
+        var mergeProcessRepository = scope.Resolve<ReviewThreadRepository>();
         
-        var mergeProcess = await mergeProcessRepository.SetMergeProcessStatusForPr(
+        var mergeProcess = await mergeProcessRepository.SetReviewProcessStatusForPr(
             command.Installation.RepositoryId, 
             command.PullRequestNumber, 
             command.Status, 
@@ -157,13 +160,13 @@ public sealed class GithubCommandHandler :
         
         if (mergeProcess is null)
         {
-            Log.Error("Failed to change status of merge process for pull request: {RepoId}:{PrNumber}", 
+            Log.Error("Failed to change status of review thread for pull request: {RepoId}:{PrNumber}", 
                 command.Installation.RepositoryId, command.PullRequestNumber);
             
             return null;
         }
 
-        var statusChangedEvent = new MergeProcessStatusChangedEvent(
+        var statusChangedEvent = new ReviewThreadStatusChangedEvent(
             command.Installation,
             command.PullRequestNumber,
             mergeProcess
@@ -180,17 +183,17 @@ public sealed class GithubCommandHandler :
         var dbRepository = scope.Resolve<GithubDbRepository>();
         
         var pullRequest = await dbRepository.GetPullRequest(command.Installation.RepositoryId, command.Number, ct);
-        if (pullRequest is not null and not {Status: PullRequestStatus.Closed})
-            return null;
         
         pullRequest ??= new PullRequest
         {
             InstallationId = command.Installation.InstallationId,
             GhRepoId = command.Installation.RepositoryId,
             Number = command.Number,
-            Status = PullRequestStatus.Open
+            Status = command.Status
         };
 
+        pullRequest.Status = command.Status;
+        
         dbRepository.DbContext.PullRequest!.Update(pullRequest);
         await dbRepository.DbContext.SaveChangesAsync(ct);
 

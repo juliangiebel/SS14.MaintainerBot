@@ -1,8 +1,8 @@
 ﻿namespace SS14.MaintainerBot.Core.Models.Types;
 
-public enum MergeProcessStatus
+public enum MaintainerReviewStatus
 {
-    /// <summary>
+    /*/// <summary>
     /// The process was created but hasn't been started yet
     /// </summary>
     NotStarted,
@@ -35,5 +35,10 @@ public enum MergeProcessStatus
     /// <summary>
     /// The Pull request has been closed and the process is ready to get cleaned up and removed
     /// </summary>
+    Closed*/
+    InDiscussion,
+    Approved,
+    Merged,
+    Rejected,
     Closed
 }

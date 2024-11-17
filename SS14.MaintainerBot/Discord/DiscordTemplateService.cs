@@ -3,6 +3,7 @@ using Fluid;
 using Fluid.Values;
 using Microsoft.OpenApi.Extensions;
 using Serilog;
+using SS14.MaintainerBot.Core.Helpers;
 using SS14.MaintainerBot.Discord.Configuration;
 using ILogger = Serilog.ILogger;
 
@@ -91,7 +92,9 @@ public sealed class DiscordTemplateService
             }
         };
 
-        context.Options.Filters.AddFilter("discord_timestamp", DiscordDateFiler);
+        context.Options.Filters.AddFilter("discord_timestamp", DiscordDateFilter);
+        context.Options.Filters.AddFilter("strip_html_comments", TemplateFilters.StripHtmlComments);
+        context.Options.Filters.AddFilter("truncate_lines", TemplateFilters.TruncateLines);
         context.Options.ValueConverters.Add(EnumConverter);
         context.SetValue("current_datetime", DateTime.Now);
         return await template.RenderAsync(context);
@@ -108,7 +111,7 @@ public sealed class DiscordTemplateService
     /// <remarks>
     /// For supported display styles see: <a href="https://discord.com/developers/docs/reference#message-formatting-timestamp-styles">Discord developer docs</a>
     /// </remarks>
-    private ValueTask<FluidValue> DiscordDateFiler(FluidValue input, FilterArguments arguments, TemplateContext context)
+    private ValueTask<FluidValue> DiscordDateFilter(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
         if (!input.TryGetDateTimeInput(context, out var dateTime))
             return NilValue.Instance;

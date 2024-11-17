@@ -1,0 +1,7 @@
+﻿{% if State == "Commented" %}
+### {{ ReviewerName }} commented [↗](<{{ Link }}>)
+{% elsif State == "APPROVED" %}
+### {{ ReviewerName }} approved the pull request [↗](<{{ Link }}>)
+{% elsif State == "CHANGES_REQUESTED" %}
+### {{ ReviewerName }} requested changes [↗](<{{ Link }}>)
+{% endif %}{{ ReviewMessage | strip_html_comments | truncate_lines:5 }}

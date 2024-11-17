@@ -14,7 +14,7 @@ public class GithubWebhookTests(MaintainerBotFixture fixture) : TestBase<Maintai
     public async Task PrMatchingRequirementsGetsProcessed()
     {
         var number = Fake.Random.Int();
-        var prOpenedEvent = fixture.OpenPullRequestEvent(number, fixture.OpenPullRequest);
+        var prOpenedEvent = fixture.PullRequestEvent(number, fixture.OpenPullRequest);
         await prOpenedEvent.PublishAsync();
         var payload = prOpenedEvent.Payload;
         var pullRequest = await fixture.GithubDbRepository.GetPullRequest(
@@ -29,10 +29,86 @@ public class GithubWebhookTests(MaintainerBotFixture fixture) : TestBase<Maintai
     }
 
     [Fact]
+    public async Task InDiscussionLabelCreatesReviewThread()
+    {
+        var number = Fake.Random.Int();
+        var prOpenedEvent = fixture.PullRequestEvent(number, fixture.OpenPullRequest);
+        await prOpenedEvent.PublishAsync();
+        
+        var labelAddedEvent = fixture.PullRequestEvent(number, fixture.PrLabeled);
+        await labelAddedEvent.PublishAsync();
+        
+        var payload = prOpenedEvent.Payload;
+        var pullRequest = await fixture.GithubDbRepository.GetPullRequest(
+            payload.Repository.Id, 
+            payload.Number,
+            new CancellationToken());
+        
+        pullRequest.Should().NotBeNull();
+        pullRequest!.Status.Should().Be(PullRequestStatus.Open);
+        
+        var reviewThread = await fixture.ReviewThreadRepository.GetReviewThreadForPr(pullRequest.Id, new CancellationToken());
+
+        reviewThread.Should().NotBeNull();
+        reviewThread!.Status.Should().Be(MaintainerReviewStatus.InDiscussion);
+    }
+
+    [Fact]
+    public async Task NewPullRequestsDontCreateReviewThread()
+    {
+        var number = Fake.Random.Int();
+        var prOpenedEvent = fixture.PullRequestEvent(number, fixture.OpenPullRequest);
+        await prOpenedEvent.PublishAsync();
+        
+        var payload = prOpenedEvent.Payload;
+        var pullRequest = await fixture.GithubDbRepository.GetPullRequest(
+            payload.Repository.Id, 
+            payload.Number,
+            new CancellationToken());
+        
+        pullRequest.Should().NotBeNull();
+        pullRequest!.Status.Should().Be(PullRequestStatus.Open);
+        
+        var reviewThread = await fixture.ReviewThreadRepository.GetReviewThreadForPr(pullRequest.Id, new CancellationToken());
+
+        reviewThread.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ClosingAPrConcludesDiscussionThread(bool merged)
+    {
+        var number = Fake.Random.Int();
+        var prOpenedEvent = fixture.PullRequestEvent(number, fixture.OpenPullRequest);
+        await prOpenedEvent.PublishAsync();
+        
+        var labelAddedEvent = fixture.PullRequestEvent(number, fixture.PrLabeled);
+        await labelAddedEvent.PublishAsync();
+        
+        var prClosedEvent = fixture.PullRequestEvent(number, merged ? fixture.PrMerged : fixture.PrClosed);
+        await prClosedEvent.PublishAsync();
+        
+        var payload = prOpenedEvent.Payload;
+        var pullRequest = await fixture.GithubDbRepository.GetPullRequest(
+            payload.Repository.Id, 
+            payload.Number,
+            new CancellationToken());
+        
+        pullRequest.Should().NotBeNull();
+        pullRequest!.Status.Should().Be(PullRequestStatus.Closed);
+        
+        var reviewThread = await fixture.ReviewThreadRepository.GetReviewThreadForPr(pullRequest.Id, new CancellationToken());
+
+        reviewThread.Should().NotBeNull();
+        reviewThread!.Status.Should().Be(merged ? MaintainerReviewStatus.Merged : MaintainerReviewStatus.Closed);
+    }
+    
+    /*[Fact]
     public async Task ApprovalsUnderLimitDoesntStartWorkflow()
     {
         var number = Fake.Random.Int();
-        var prOpenedEvent = fixture.OpenPullRequestEvent(number, fixture.OpenPullRequest);
+        var prOpenedEvent = fixture.PullRequestEvent(number, fixture.OpenPullRequest);
         await prOpenedEvent.PublishAsync();
 
         var reviewEvent = fixture.ReviewEvent(number, Fake.Random.Int(), fixture.MaintainerApproved);
@@ -49,17 +125,17 @@ public class GithubWebhookTests(MaintainerBotFixture fixture) : TestBase<Maintai
         pullRequest.Comments.Should().HaveCount(1);
         pullRequest.Reviewers.Should().HaveCount(1);
 
-        var mergeProcess = await fixture.MergeProcessRepository.GetMergeProcessForPr(pullRequest.Id, new CancellationToken());
+        var mergeProcess = await fixture.ReviewThreadRepository.GetReviewThreadForPr(pullRequest.Id, new CancellationToken());
 
         mergeProcess.Should().NotBeNull();
-        mergeProcess!.Status.Should().Be(MergeProcessStatus.NotStarted);
+        mergeProcess!.Status.Should().Be(MaintainerReviewStatus.NotStarted);
     }
     
     [Fact]
     public async Task EnoughApprovalsStartsWorkflow()
     {
         var number = Fake.Random.Int();
-        var prOpenedEvent = fixture.OpenPullRequestEvent(number, fixture.OpenPullRequest);
+        var prOpenedEvent = fixture.PullRequestEvent(number, fixture.OpenPullRequest);
         await prOpenedEvent.PublishAsync();
 
         var reviewEvent1 = fixture.ReviewEvent(number, Fake.Random.Int(), fixture.MaintainerApproved);
@@ -77,9 +153,9 @@ public class GithubWebhookTests(MaintainerBotFixture fixture) : TestBase<Maintai
         pullRequest.Should().NotBeNull();
         pullRequest!.Reviewers.Should().HaveCount(2);
 
-        var mergeProcess = await fixture.MergeProcessRepository.GetMergeProcessForPr(pullRequest.Id, new CancellationToken());
+        var mergeProcess = await fixture.ReviewThreadRepository.GetReviewThreadForPr(pullRequest.Id, new CancellationToken());
 
         mergeProcess.Should().NotBeNull();
-        mergeProcess!.Status.Should().Be(MergeProcessStatus.Scheduled);
-    }
+        mergeProcess!.Status.Should().Be(MaintainerReviewStatus.Scheduled);
+    }*/
 }

@@ -18,7 +18,9 @@ public sealed class GithubDbRepository
     {
          return await DbContext.PullRequest!
              .Include(p => p.Reviewers)
+             .Include(p => p.Comments)
              .Where(p => p.GhRepoId == ghRepoId && p.Number == number)
+             .AsSplitQuery()
              .SingleOrDefaultAsync(cancellationToken: ct);
     }
 

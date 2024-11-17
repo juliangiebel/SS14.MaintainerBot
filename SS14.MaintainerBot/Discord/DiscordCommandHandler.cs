@@ -12,10 +12,11 @@ namespace SS14.MaintainerBot.Discord;
 
 [UsedImplicitly]
 public sealed class DiscordCommandHandler :
-    ICommandHandler<CreateMergeProcessPost, DiscordMessage?>,
+    ICommandHandler<CreateReviewThreadPost, DiscordMessage?>,
     ICommandHandler<CreateOrUpdateForumPost, DiscordMessage?>,
     ICommandHandler<UpdateMergeProcessPost>,
-    ICommandHandler<UpdateMergeProcessPostTags, DiscordMessage?>
+    ICommandHandler<UpdateReviewThreadPostTags, DiscordMessage?>,
+    ICommandHandler<CreateReviewThreadMessage>
 {
     private readonly ServerConfiguration _serverConfig = new();
     private readonly DiscordConfiguration _config = new();
@@ -41,7 +42,7 @@ public sealed class DiscordCommandHandler :
     }
 
     
-    public async Task<DiscordMessage?> ExecuteAsync(CreateMergeProcessPost command, CancellationToken ct)
+    public async Task<DiscordMessage?> ExecuteAsync(CreateReviewThreadPost command, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<DiscordDbRepository>();
@@ -50,7 +51,7 @@ public sealed class DiscordCommandHandler :
         if (pullRequest == null)
             return null;
 
-        var model = new ProcessPostTemplateModel(pullRequest, command.MergeProcess);
+        var model = new ReviewThreadTemplateModel(pullRequest, command.ReviewThread);
         var template = await _templateService.RenderTemplate("merge_process_post", model, _serverConfig.Language);
 
         var labels = pullRequest.Labels.Select(l => l.Name);
@@ -60,7 +61,7 @@ public sealed class DiscordCommandHandler :
             command.GuildId,
             $"{pullRequest.Number} - {pullRequest.Title}",
             template,
-            command.MergeProcess.Id,
+            command.ReviewThread.Id,
             dbRepository, 
             command.Button,
             tags,
@@ -73,7 +74,7 @@ public sealed class DiscordCommandHandler :
         if (pullRequest == null)
             return;
 
-        var model = new ProcessPostTemplateModel(pullRequest, command.MergeProcess);
+        var model = new ReviewThreadTemplateModel(pullRequest, command.ReviewThread);
         var template = await _templateService.RenderTemplate("merge_process_post", model, _serverConfig.Language);
 
         await UpdateForumPost(command.Message, template, command.Button);
@@ -97,12 +98,12 @@ public sealed class DiscordCommandHandler :
             ct);
     }
 
-    public async Task<DiscordMessage?> ExecuteAsync(UpdateMergeProcessPostTags command, CancellationToken ct)
+    public async Task<DiscordMessage?> ExecuteAsync(UpdateReviewThreadPostTags command, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<DiscordDbRepository>();
 
-        var message = await dbRepository.GetMessageFromProcess(command.GuildId, command.MergeProcessId, ct);
+        var message = await dbRepository.GetMessageFromProcess(command.GuildId, command.ReviewThreadId, ct);
         if (message == null)
             return null;
         
@@ -114,8 +115,16 @@ public sealed class DiscordCommandHandler :
         
         if (config.ProcessTags.TryGetValue(command.ProcessStatus, out var processTag))
             tags.Add(processTag);
-
+        
         await _discordClientService.UpdateForumPostTags(message.GuildId, message.ChannelId, tags);
+
+        var titleTags = config.GetTitleTags(tags);
+        await _discordClientService.UpdateForumPostTitleTag(message.GuildId, message.ChannelId, titleTags);
+
+        if (!config.ArchivalTags.Intersect(tags).Any()) return message;
+        
+        await _discordClientService.ArchiveForumThread(message.GuildId, message.ChannelId);
+        await dbRepository.DeleteMessage(message, ct);
         return message;
     }
     
@@ -138,13 +147,13 @@ public sealed class DiscordCommandHandler :
         
         var message = new DiscordMessage
         {
-            MergeProcessId = mergeProcessId,
+            ReviewThreadId = mergeProcessId,
             GuildId = channel.GuildId,
             ChannelId = channel.Id,
             MessageId = messageId
         };
 
-        await dbRepository.DbContext.AddAsync(message, ct);
+        dbRepository.DbContext.Add(message);
         await dbRepository.DbContext.SaveChangesAsync(ct);
         return message;
     }
@@ -182,5 +191,28 @@ public sealed class DiscordCommandHandler :
         }
 
         return builder.Build();
+    }
+
+    public async Task ExecuteAsync(CreateReviewThreadMessage command, CancellationToken ct)
+    {
+        var scope = _scopeFactory.CreateScope();
+        var dbRepository = scope.Resolve<DiscordDbRepository>();
+
+        foreach (var (id, guildConfig) in _config.Guilds)
+        {
+            if (!guildConfig.CheckInstallation(command.Installation))
+                continue;
+
+            var message = await dbRepository.GetMessageFromProcess(id, command.ReviewThread.Id, ct);
+            if (message == null)
+                return;
+            
+            var thread = await _discordClientService.GetThread(message.GuildId, message.ChannelId, message.MessageId);
+            if (!thread.HasValue)
+                return;
+
+            var (channel, _) = thread.Value;
+            await channel.SendMessageAsync(command.Message);
+        }
     }
 }

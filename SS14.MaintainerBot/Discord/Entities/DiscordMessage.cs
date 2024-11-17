@@ -10,6 +10,6 @@ public class DiscordMessage
     public ulong GuildId { get; set; }
     public ulong ChannelId { get; set; }
     public ulong MessageId { get; set; }
-    public Guid MergeProcessId { get; set; }
-    public MergeProcess MergeProcess { get; set; }
+    public Guid ReviewThreadId { get; set; }
+    public ReviewThread ReviewThread { get; set; }
 }

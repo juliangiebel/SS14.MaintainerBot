@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using JetBrains.Annotations;
 using SS14.MaintainerBot.Core.Models.Types;
 using SS14.MaintainerBot.Github.Entities;
 
@@ -8,7 +7,7 @@ using SS14.MaintainerBot.Github.Entities;
 
 namespace SS14.MaintainerBot.Core.Models.Entities;
 
-public class MergeProcess
+public class ReviewThread
 {
     [Key]
     public Guid Id {get; set;}
@@ -20,13 +19,7 @@ public class MergeProcess
 
     [Required]
     public DateTime StartedOn { get; set; } = DateTime.UtcNow;
-    
-    [Required]
-    public TimeSpan MergeDelay { get; set; }
 
     [Required]
-    public MergeProcessStatus Status { get; set; } = MergeProcessStatus.Scheduled;
-
-    [UsedImplicitly]
-    public DateTime ScheduledOn => StartedOn.Add(MergeDelay);
+    public MaintainerReviewStatus Status { get; set; } = MaintainerReviewStatus.InDiscussion;
 }

@@ -27,27 +27,6 @@ namespace SS14.MaintainerBot.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "MergeProcesses",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    PullRequestId = table.Column<Guid>(type: "uuid", nullable: false),
-                    StartedOn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    MergeDelay = table.Column<TimeSpan>(type: "interval", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_MergeProcesses", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_MergeProcesses_PullRequest_PullRequestId",
-                        column: x => x.PullRequestId,
-                        principalTable: "PullRequest",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "PullRequestComment",
                 columns: table => new
                 {
@@ -86,29 +65,78 @@ namespace SS14.MaintainerBot.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ReviewThread",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PullRequestId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StartedOn = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReviewThread", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ReviewThread_PullRequest_PullRequestId",
+                        column: x => x.PullRequestId,
+                        principalTable: "PullRequest",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DiscordMessage",
+                columns: table => new
+                {
+                    GuildId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    ChannelId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    MessageId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    ReviewThreadId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscordMessage", x => new { x.GuildId, x.ChannelId, x.MessageId });
+                    table.ForeignKey(
+                        name: "FK_DiscordMessage_ReviewThread_ReviewThreadId",
+                        column: x => x.ReviewThreadId,
+                        principalTable: "ReviewThread",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
-                name: "IX_MergeProcesses_PullRequestId",
-                table: "MergeProcesses",
-                column: "PullRequestId",
+                name: "IX_DiscordMessage_ReviewThreadId",
+                table: "DiscordMessage",
+                column: "ReviewThreadId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PullRequest_InstallationId_GhRepoId_Number",
                 table: "PullRequest",
                 columns: new[] { "InstallationId", "GhRepoId", "Number" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ReviewThread_PullRequestId",
+                table: "ReviewThread",
+                column: "PullRequestId",
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "MergeProcesses");
+                name: "DiscordMessage");
 
             migrationBuilder.DropTable(
                 name: "PullRequestComment");
 
             migrationBuilder.DropTable(
                 name: "Reviewer");
+
+            migrationBuilder.DropTable(
+                name: "ReviewThread");
 
             migrationBuilder.DropTable(
                 name: "PullRequest");

@@ -70,10 +70,10 @@ public class DiscordInteractionHandler
             return;
 
         var config = _config.Guilds[socketModal.GuildId.Value];
-        var command = new ChangeMergeProcessStatus(
+        var command = new ChangeReviewThreadStatus(
             new InstallationIdentifier(config.GithubInstallationId, config.GithubRepositoryId),
-            message.MergeProcess.PullRequest.Number,
-            MergeProcessStatus.Interrupted);
+            message.ReviewThread.PullRequest.Number,
+            MaintainerReviewStatus.Rejected);
 
         await command.ExecuteAsync();
 

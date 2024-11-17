@@ -14,4 +14,8 @@ Server:
   EnableMigrations: false
   
 GithubBot:
+  CreateThreadForAllPrs: false
+  SendIntroductoryComment: true
   RequiredApprovals: 2
+  InDiscussionLabels:
+    - InDiscussion

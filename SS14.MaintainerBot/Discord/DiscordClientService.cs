@@ -1,4 +1,6 @@
-﻿using Discord;
+﻿using System.Text;
+using System.Text.RegularExpressions;
+using Discord;
 using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
@@ -8,8 +10,11 @@ using IResult = Discord.Interactions.IResult;
 
 namespace SS14.MaintainerBot.Discord;
 
-public sealed class DiscordClientService
+public sealed partial class DiscordClientService
 {
+    [GeneratedRegex(@"^(?:\[.*?\]\s?)*")]
+    private static partial Regex TitleTagMatcher(); 
+    
     public DiscordSocketClient Client { get; }
     
     private readonly DiscordConfiguration _configuration = new();
@@ -51,7 +56,6 @@ public sealed class DiscordClientService
         Enabled = true;
     }
 
-    // TODO: Finish implementing this method
     public async Task<(RestThreadChannel channel, ulong messageId)?> CreateForumThread(
         ulong guildId, 
         string title, 
@@ -91,6 +95,32 @@ public sealed class DiscordClientService
         
         var thread = guild.GetThreadChannel(channelId);
         await thread.ModifyAsync(t => t.AppliedTags = Optional.Create(tagInstances));
+    }
+
+    public async Task UpdateForumPostTitleTag(ulong guildId, ulong channelId, List<string> titleTags)
+    {
+        var guild = Client.GetGuild(guildId);
+        var thread = guild.GetThreadChannel(channelId);
+        
+        var name = new StringBuilder(TitleTagMatcher().Replace(thread.Name, string.Empty));
+
+        foreach (var tag in titleTags)
+        {
+            name.Insert(0, $"[{tag}] ");
+        }
+
+        if (name.Equals(thread.Name))
+            return;
+
+        await thread.ModifyAsync(t => t.Name = name.ToString());
+    }
+
+    public async Task ArchiveForumThread(ulong guildId, ulong channelId)
+    {
+        var guild = Client.GetGuild(guildId);
+        var thread = guild.GetThreadChannel(channelId);
+
+        await thread.ModifyAsync(t => t.Archived = true);
     }
     
     public async Task<(SocketThreadChannel channel, IMessage message)?> GetThread(ulong guildId, ulong channelId, ulong messageId)

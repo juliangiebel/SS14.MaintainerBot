@@ -18,4 +18,9 @@ public static class OctokitFuckupsExtension
     {
         return Enum.Parse<T>(stringEnum.StringValue.Replace("_", ""), true);
     }
+
+    public static TResult Parse<TResult, TStringEnum>(this StringEnum<TStringEnum> stringEnum) where TResult : struct where TStringEnum : struct
+    {
+        return Enum.Parse<TResult>(stringEnum.StringValue.Replace("_", ""), true);
+    }
 }

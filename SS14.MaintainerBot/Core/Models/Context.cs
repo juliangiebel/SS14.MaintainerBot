@@ -7,7 +7,7 @@ namespace SS14.MaintainerBot.Core.Models;
 
 public class Context : DbContext
 {
-    public DbSet<MergeProcess>? MergeProcesses { get; set; }
+    public DbSet<ReviewThread>? ReviewThread { get; set; }
     public DbSet<PullRequest>? PullRequest { get; set; }
     public DbSet<PullRequestComment>? PullRequestComment { get; set; }
     
@@ -19,21 +19,26 @@ public class Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        builder.Entity<MergeProcess>()
+        builder.Entity<ReviewThread>()
             .HasOne(e => e.PullRequest)
             .WithOne()
-            .HasForeignKey<MergeProcess>(e => e.PullRequestId);
-            
+            .HasForeignKey<ReviewThread>(e => e.PullRequestId);
+
         builder.Entity<PullRequest>()
             .HasMany(e => e.Comments)
             .WithOne()
             .HasForeignKey(e => e.PullRequestId);
-        
+
         builder.Entity<PullRequest>()
             .HasMany(e => e.Reviewers)
             .WithOne()
             .HasForeignKey(e => e.PullRequestId);
 
         builder.Entity<PullRequestComment>();
+
+        builder.Entity<DiscordMessage>()
+            .HasOne(m => m.ReviewThread)
+            .WithOne()
+            .HasForeignKey<DiscordMessage>(m => m.ReviewThreadId);
     }
 }

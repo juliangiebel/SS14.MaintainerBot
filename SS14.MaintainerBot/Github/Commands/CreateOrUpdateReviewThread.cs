@@ -5,9 +5,9 @@ using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Github.Commands;
 
-public record ChangeMergeProcessStatus
+public record CreateOrUpdateReviewThread
 (
     InstallationIdentifier Installation,
     int PullRequestNumber,
-    MergeProcessStatus Status
-): ICommand<MergeProcess?>;
+    MaintainerReviewStatus Status
+) : ICommand<ReviewThread?>;

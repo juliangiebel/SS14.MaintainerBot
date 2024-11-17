@@ -1,4 +1,2 @@
-﻿{{ PullRequest.Body }}
-{% if MergeProcess.Status == "Scheduled" %}
--# This PR will be merged {{ MergeProcess.ScheduledOn |  discord_timestamp:"R" }}
-{% endif %}
+﻿{{ PullRequest.Body | strip_html_comments | truncate_lines:20 }}
+[PR #{{ Number }}↗](<{{ Link }}>) opened by: {{ PrAuthor }}

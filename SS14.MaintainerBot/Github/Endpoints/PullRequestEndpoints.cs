@@ -1,9 +1,11 @@
 ﻿using FastEndpoints;
 using JetBrains.Annotations;
+using Octokit;
 using SS14.MaintainerBot.Github.Commands;
-using SS14.MaintainerBot.Github.Entities;
+using SS14.MaintainerBot.Github.Helpers;
 using SS14.MaintainerBot.Github.Services;
 using SS14.MaintainerBot.Github.Types;
+using PullRequest = SS14.MaintainerBot.Github.Entities.PullRequest;
 
 namespace SS14.MaintainerBot.Github.Endpoints;
 
@@ -68,7 +70,8 @@ public class SavePullRequestEndpoint : Endpoint<PullRequestIdentifier, PullReque
         
         var command = new SavePullRequest(
             new InstallationIdentifier(req.InstallationId, req.RepositoryId),
-            req.Number
+            req.Number,
+            ghPullRequest.State.Parse<PullRequestStatus, ItemState>()
         );
 
         var pullRequest = await command.ExecuteAsync(ct);

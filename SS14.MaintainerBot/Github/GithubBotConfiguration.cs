@@ -7,8 +7,9 @@ public sealed class GithubBotConfiguration
 {
     public const string Name = "GithubBot";
 
+    // old doc: Which permissions trigger or stop the merge workflow when submitting a review
     /// <summary>
-    /// Which permissions trigger or stop the merge workflow when submitting a review
+    /// 
     /// </summary>
     public List<GithubPermissions> ReviewPermissions { get; set; } = [GithubPermissions.Maintain];
 
@@ -28,7 +29,7 @@ public sealed class GithubBotConfiguration
     /// <summary>
     /// Whether to post a comment on newly opened PRs.
     /// </summary>
-    public bool SendIntroductoryComment { get; set; } = true;
+    public bool SendIntroductoryComment { get; set; } = false;
 
     /// <summary>
     /// The template to use for the introductory comment
@@ -38,34 +39,36 @@ public sealed class GithubBotConfiguration
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string MergeProcessStartedCommentTemplate { get; set; } = "process_started";
+    //public string MergeProcessStartedCommentTemplate { get; set; } = "process_started";
     
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string MergeProcessStoppedCommentTemplate { get; set; } = "process_stopped";
+    //public string MergeProcessStoppedCommentTemplate { get; set; } = "process_stopped";
 
-    public string MergeProcessMergingCommentTemplate { get; set; } = "process_merging";
-    public string MergeProcessMergedCommentTemplate { get; set; } = "process_merged";
-    public string MergeProcessFailedCommentTemplate { get; set; } = "process_failed";
+    //public string MergeProcessMergingCommentTemplate { get; set; } = "process_merging";
+    //public string MergeProcessMergedCommentTemplate { get; set; } = "process_merged";
+    //public string MergeProcessFailedCommentTemplate { get; set; } = "process_failed";
     
     /// <summary>
     /// The template to use for the introductory comment
     /// </summary>
-    public string MergeProcessPrClosedCommentTemplate { get; set; } = "process_closed";
+    //public string MergeProcessPrClosedCommentTemplate { get; set; } = "process_closed";
 
     
     /// <summary>
     /// Whether to start a discourse thread and post a discord message when a PR gets oppened instead of first approval
     /// </summary>
-    public bool ProcessUnapprovedPrs { get; set; } = true;
+    public bool CreateThreadForAllPrs { get; set; } = false;
 
+    public List<string> InDiscussionLabels { get; set; } = [];
+    
     public PullRequestMergeMethod MergeMethod { get; set; } = PullRequestMergeMethod.Squash;
     
     /// <summary>
     /// The amount of time a PR is left open after it gets scheduled for merging
     /// </summary>
-    public TimeSpan MergeDelay { get; set; } = TimeSpan.FromDays(2);
+    //public TimeSpan MergeDelay { get; set; } = TimeSpan.FromDays(2);
 
     /// <summary>
     /// The amount of approvals required before a PR gets scheduled for merging

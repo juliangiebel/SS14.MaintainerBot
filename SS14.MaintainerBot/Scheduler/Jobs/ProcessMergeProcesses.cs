@@ -11,6 +11,7 @@ using ILogger = Serilog.ILogger;
 
 namespace SS14.MaintainerBot.Scheduler.Jobs;
 
+//TODO: Delete this file
 [CronSchedule("Scheduler#MergeProcessCron", "MergeProcesses", "processing", true)]
 public class ProcessMergeProcesses : IJob
 {
@@ -33,7 +34,7 @@ public class ProcessMergeProcesses : IJob
 
     public async Task Execute(IJobExecutionContext context)
     {
-        _log.Debug("Processing merge processes");
+        /*_log.Debug("Processing merge processes");
         var fireTime = context.FireTimeUtc.UtcDateTime;
 
         //using var scope = _scopeFactory.CreateScope();
@@ -41,7 +42,7 @@ public class ProcessMergeProcesses : IJob
         
         var processes = await _dbContext.MergeProcesses!
             .Include(p => p.PullRequest)
-            .Where(p => p.Status == MergeProcessStatus.Scheduled && p.StartedOn + p.MergeDelay < fireTime)
+            .Where(p => p.Status == MaintainerReviewStatus.Scheduled && p.StartedOn + p.MergeDelay < fireTime)
             .ToListAsync();
 
         foreach (var process in processes)
@@ -53,10 +54,10 @@ public class ProcessMergeProcesses : IJob
             var ghPullRequest = await _apiService.GetPullRequest(installation, process.PullRequest.Number);
             if (ghPullRequest == null || ghPullRequest.Mergeable == false)
             {
-                var command = new ChangeMergeProcessStatus(
+                var command = new ChangeReviewThreadStatus(
                     installation,
                     process.PullRequest.Number,
-                    ghPullRequest == null ? MergeProcessStatus.Failed : MergeProcessStatus.Interrupted);
+                    ghPullRequest == null ? MaintainerReviewStatus.Failed : MaintainerReviewStatus.Interrupted);
 
                 await command.ExecuteAsync();
                 continue;
@@ -69,6 +70,6 @@ public class ProcessMergeProcesses : IJob
         }
         
         if (processes.Count > 0)
-            _log.Information("Merged {count} pull requests", processes.Count);
+            _log.Information("Merged {count} pull requests", processes.Count);*/
     }
 }

@@ -70,7 +70,7 @@ if (serverConfiguration.EnableSentry)
 #region Database
 
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("default"));
-await using var dataSource = dataSourceBuilder.Build();
+var dataSource = dataSourceBuilder.Build();
 builder.Services.AddDbContext<Context>(opt =>
 {
     // ReSharper disable once AccessToDisposedClosure
@@ -87,7 +87,7 @@ builder.Services.AddSingleton<RateLimiterService>();
 // Github
 //builder.Services.Configure<GithubBotConfiguration>(builder.Configuration.GetSection(GithubBotConfiguration.Name));
 builder.Services.AddScoped<GithubDbRepository>();
-builder.Services.AddScoped<MergeProcessRepository>();
+builder.Services.AddScoped<ReviewThreadRepository>();
 builder.Services.AddSingleton<IGithubApiService, GithubApiService>();
 builder.Services.AddSingleton<PrVerificationService>();
 builder.Services.AddGithubTemplating();
@@ -174,3 +174,6 @@ if (app.Environment.IsDevelopment())
 app.ScheduleMarkedJobs();
 await app.UseDiscordClient();
 app.Run();
+
+if(!EF.IsDesignTime)
+    await dataSource.DisposeAsync();

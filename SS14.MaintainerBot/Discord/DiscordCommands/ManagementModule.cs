@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Interactions;
 using FastEndpoints;
+using SS14.GithubApiHelper.Services;
 using SS14.MaintainerBot.Core.Configuration;
 using SS14.MaintainerBot.Core.Models;
 using SS14.MaintainerBot.Core.Models.Types;
@@ -45,19 +46,34 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
         await DeferAsync(ephemeral: true);
 
         var guildConfig = _config.Guilds[Context.Guild.Id];
-        var command = new ChangeMergeProcessStatus(
+        var command = new ChangeReviewThreadStatus(
             new InstallationIdentifier(guildConfig.GithubInstallationId, guildConfig.GithubRepositoryId),
             number,
-            MergeProcessStatus.Scheduled);
+            MaintainerReviewStatus.InDiscussion);
 
         var result = await command.ExecuteAsync();
         await ModifyOriginalResponseAsync(p =>
         {
             p.Content = result != null
-                ? $"Set process {result.Id} to scheduled"
+                ? $"Set process {result.Id} to in discussion."
                 : "Failed to process status";
         });
     
+    }
+
+    [SlashCommand("reload-templates", "Reloads all liquid templates")]
+    public async Task ReloadTemplates()
+    {
+        await DeferAsync();
+        using var scope = _scopeFactory.CreateScope();
+
+        var ghTemplateService = scope.Resolve<GithubTemplateService>();
+        var discordTemplateService = scope.Resolve<DiscordTemplateService>();
+        await ghTemplateService.LoadTemplates();
+        await discordTemplateService.LoadTemplates();
+        
+        var content = await _templateService.RenderTemplate("status_response", culture: _serverConfiguration.Language);
+        await ModifyOriginalResponseAsync(p => p.Content = content );
     }
     
     [SlashCommand("status", "Shows the bots status")]
@@ -66,15 +82,15 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
         await DeferAsync();
         
         using var scope = _scopeFactory.CreateScope();
-        var dbRepository = scope.Resolve<MergeProcessRepository>();
+        var dbRepository = scope.Resolve<ReviewThreadRepository>();
         
         var guildConfig = _config.Guilds[Context.Guild.Id];
         var installation = new InstallationIdentifier(guildConfig.GithubInstallationId, guildConfig.GithubRepositoryId);
         var ct = new CancellationToken();
 
-        var failedCount = await dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.Failed);
-        var scheduledCount = await dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.Scheduled);
-        var unscheduledCount = await dbRepository.CountMergeProcesses(installation, ct, MergeProcessStatus.NotStarted, MergeProcessStatus.Interrupted);
+        var inDiscussionCount = await dbRepository.CountReviewThreads(installation, ct, MaintainerReviewStatus.InDiscussion);
+        var approvedCount = await dbRepository.CountReviewThreads(installation, ct, MaintainerReviewStatus.Approved);
+        var rejectedCount = await dbRepository.CountReviewThreads(installation, ct, MaintainerReviewStatus.Rejected);
 
         var githubRepository = await _githubApiService.GetRepository(installation);
         
@@ -82,9 +98,9 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
         {
             RepositoryName = githubRepository?.Name ?? "",
             RepositoryUrl = githubRepository?.HtmlUrl ?? "",
-            FailedCount = failedCount,
-            ScheduledCount = scheduledCount,
-            UnscheduledCount = unscheduledCount
+            InDiscussionCount = inDiscussionCount,
+            ApprovedCount = approvedCount,
+            RejectedCount = rejectedCount
         };
         
         var content = await _templateService.RenderTemplate("status_response", model, _serverConfiguration.Language);
@@ -95,8 +111,8 @@ public class ManagementModule : InteractionModuleBase<SocketInteractionContext>
     {
         public string? RepositoryName { get; set; }
         public string? RepositoryUrl { get; set; }
-        public int FailedCount { get; set; }
-        public int ScheduledCount { get; set; }
-        public int UnscheduledCount { get; set; }
+        public int InDiscussionCount { get; set; }
+        public int ApprovedCount { get; set; }
+        public int RejectedCount { get; set; }
     }
 }

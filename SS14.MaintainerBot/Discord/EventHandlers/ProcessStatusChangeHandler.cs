@@ -12,7 +12,7 @@ using SS14.MaintainerBot.Github.Events;
 namespace SS14.MaintainerBot.Discord.EventHandlers;
 
 [UsedImplicitly]
-public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChangedEvent>
+public class ProcessStatusChangeHandler: IEventHandler<ReviewThreadStatusChangedEvent>
 {
     private readonly DiscordConfiguration _configuration = new();
     
@@ -27,7 +27,7 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
         configuration.Bind(DiscordConfiguration.Name, _configuration);
     }
 
-    public async Task HandleAsync(MergeProcessStatusChangedEvent eventModel, CancellationToken ct)
+    public async Task HandleAsync(ReviewThreadStatusChangedEvent eventModel, CancellationToken ct)
     {
         var scope = _scopeFactory.CreateScope();
         var dbRepository = scope.Resolve<DiscordDbRepository>();
@@ -37,25 +37,25 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
            if (!guildConfig.CheckInstallation(eventModel.Installation))
                continue;
                
-           var message = await dbRepository.GetMessageFromProcess(id, eventModel.MergeProcess.Id , ct);
-           if (message == null && !guildConfig.CreatePostBeforeApproval && eventModel.MergeProcess.Status == MergeProcessStatus.NotStarted)
-               continue;
+           var message = await dbRepository.GetMessageFromProcess(id, eventModel.ReviewThread.Id , ct);
+           //if (message == null && !guildConfig.CreatePostBeforeApproval && eventModel.ReviewThread.Status == MaintainerReviewStatus.NotStarted)
+           //    continue;
 
-           var button = eventModel.MergeProcess.Status switch
+           /*var button = eventModel.ReviewThread.Status switch
            {
-               MergeProcessStatus.NotStarted => BuildInterruptButton(true),
-               MergeProcessStatus.Interrupted => BuildInterruptButton(true),
-               MergeProcessStatus.Scheduled => BuildInterruptButton(false),
+               MaintainerReviewStatus.NotStarted => BuildInterruptButton(true),
+               MaintainerReviewStatus.Interrupted => BuildInterruptButton(true),
+               MaintainerReviewStatus.Scheduled => BuildInterruptButton(false),
                _ => null
-           };
+           };*/
            
            if (message == null)
            {
-               await CreatePost(id, eventModel, button, ct);
+               await CreatePost(id, eventModel, null, ct);
            }
            else
            {
-               await UpdatePost(eventModel, button, message, ct);
+               await UpdatePost(eventModel, null, message, ct);
            }
 
            var githubPullRequest = await _githubApiService.GetPullRequest(eventModel.Installation, eventModel.PullRequestNumber);
@@ -68,11 +68,11 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
             return;
 
 
-           var updateTagsCommand = new UpdateMergeProcessPostTags(
-               eventModel.MergeProcess.Id,
+           var updateTagsCommand = new UpdateReviewThreadPostTags(
+               eventModel.ReviewThread.Id,
                id,
                githubPullRequest.Labels.Select(l => l.Name),
-               eventModel.MergeProcess.Status,
+               eventModel.ReviewThread.Status,
                pullRequest.Status
            );
 
@@ -91,20 +91,20 @@ public class ProcessStatusChangeHandler: IEventHandler<MergeProcessStatusChanged
         return new ComponentBuilder().WithButton(button).Build();
     }
     
-    private async Task CreatePost(ulong id, MergeProcessStatusChangedEvent eventModel, MessageComponent? button, CancellationToken ct)
+    private async Task CreatePost(ulong id, ReviewThreadStatusChangedEvent eventModel, MessageComponent? button, CancellationToken ct)
     { 
-        var command = new CreateMergeProcessPost(id, eventModel.Installation, eventModel.MergeProcess, eventModel.PullRequestNumber, button);
+        var command = new CreateReviewThreadPost(id, eventModel.Installation, eventModel.ReviewThread, eventModel.PullRequestNumber, button);
         await command.ExecuteAsync(ct);
     }
     
     
     private async Task UpdatePost(
-        MergeProcessStatusChangedEvent eventModel, 
+        ReviewThreadStatusChangedEvent eventModel, 
         MessageComponent? button,
         DiscordMessage message, 
         CancellationToken ct)
     {
-        var command = new UpdateMergeProcessPost(message, eventModel.Installation, eventModel.MergeProcess, eventModel.PullRequestNumber, button);
+        var command = new UpdateMergeProcessPost(message, eventModel.Installation, eventModel.ReviewThread, eventModel.PullRequestNumber, button);
         await command.ExecuteAsync(ct);
     }
 }

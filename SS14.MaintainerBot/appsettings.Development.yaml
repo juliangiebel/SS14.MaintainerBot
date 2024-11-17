@@ -7,7 +7,7 @@ Serilog:
     
 DetailedErrors: true
 ConnectionStrings:
-  default: "Server=127.0.0.1;Port=5432;Database=maintainer_bot;User Id=postgres;Password=postgres;"
+  default: "Server=127.0.0.1;Port=5432;Database=maintainer_bot;User Id=postgres;Password=postgres;Include Error Detail=true"
   
 Server:
   CorsOrigins:
@@ -21,3 +21,9 @@ Auth:
 
 Scheduler:
   MergeProcessCron: "0 0/5 * * * ?"
+  
+GithubBot:
+  CreateThreadForAllPrs: false
+  SendIntroductoryComment: true
+  InDiscussionLabels:
+    - InDiscussion

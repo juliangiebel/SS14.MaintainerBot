@@ -18,13 +18,16 @@ public class MaintainerBotFixture : AppFixture<AssemblyMarker>
 
     public readonly SimpleJsonSerializer Serializer = new();
     public GithubDbRepository GithubDbRepository { get; private set; } = default!;
-    public MergeProcessRepository MergeProcessRepository { get; private set; } = default!;
+    public ReviewThreadRepository ReviewThreadRepository { get; private set; } = default!;
 
 
     public string OpenPullRequest { get; private set; } = default!;
     public string MaintainerApproved { get; private set; } = default!;
     public string MaintainerChangeRequested { get; private set; } = default!;
     public string MaintainerDismissed { get; private set; } = default!;
+    public string PrLabeled { get; private set; } = default!;
+    public string PrClosed { get; private set; } = default!;
+    public string PrMerged { get; private set; } = default!;
     
     public T GenerateWebhookPayload<T>(int number, int userId, string templateName)
     {
@@ -33,12 +36,12 @@ public class MaintainerBotFixture : AppFixture<AssemblyMarker>
         return Serializer.Deserialize<T>(payload);
     }
 
-    public PullRequestEvent OpenPullRequestEvent(int number, string template)
+    public PullRequestEvent PullRequestEvent(int number, string template)
     {
         var payload = GenerateWebhookPayload<PullRequestEventPayload>(number, 0, template);
         return new PullRequestEvent(payload);
     }
-
+    
     public ReviewEvent ReviewEvent(int number, int userId, string template)
     {
         var payload = GenerateWebhookPayload<PullRequestReviewEventPayload>(number, userId, template);
@@ -60,12 +63,15 @@ public class MaintainerBotFixture : AppFixture<AssemblyMarker>
     protected override async Task SetupAsync()
     {
         GithubDbRepository = Services.GetRequiredService<GithubDbRepository>();
-        MergeProcessRepository = Services.GetRequiredService<MergeProcessRepository>();
+        ReviewThreadRepository = Services.GetRequiredService<ReviewThreadRepository>();
 
         OpenPullRequest = await LoadWebhookTemplate("OpenPullRequestMatchingRequirements");
         MaintainerApproved = await LoadWebhookTemplate("MaintainerReviewApproved");
         MaintainerChangeRequested = await LoadWebhookTemplate("MaintainerReviewChange");
         MaintainerDismissed = await LoadWebhookTemplate("MaintainerChangeRequestDismissed");
+        PrLabeled = await LoadWebhookTemplate("PullRequestLabeledInDiscussion");
+        PrClosed = await LoadWebhookTemplate("ClosePullRequest");
+        PrMerged = await LoadWebhookTemplate("MergePullRequest");
     }
 
     private async Task<string> LoadWebhookTemplate(string template)

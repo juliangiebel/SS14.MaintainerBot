@@ -6,10 +6,10 @@ using SS14.MaintainerBot.Github.Types;
 
 namespace SS14.MaintainerBot.Discord.Commands;
 
-public record CreateMergeProcessPost(
+public record CreateReviewThreadPost(
     ulong GuildId,
     InstallationIdentifier Installation,
-    MergeProcess MergeProcess,
+    ReviewThread ReviewThread,
     int PullRequestNumber,
     MessageComponent? Button
     ) : ICommand<DiscordMessage?>;

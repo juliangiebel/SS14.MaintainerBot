@@ -11,11 +11,32 @@ public sealed class GuildConfiguration
     public long GithubRepositoryId { get; set; }
     public ulong ForumChannelId { get; set; }
     public List<ulong> MaintainerRoles { get; set; } = [];
+    /// <summary>
+    /// A dictionary of github labels to discord forum tags that gets applied to posts
+    /// </summary>
     public Dictionary<string, string> LabelTags { get; set; } = new();
+    
+    /// <summary>
+    /// The discord forum tags that should be applied for the different pull request states
+    /// </summary>
     public Dictionary<PullRequestStatus, string>  StatusTags { get; set; } =  new();
-    public Dictionary<MergeProcessStatus, string> ProcessTags { get; set; } = new();
+    /// <summary>
+    /// The discord forum tags that should be applied for the different maintainer review states
+    /// </summary>
+    public Dictionary<MaintainerReviewStatus, string> ProcessTags { get; set; } = new();
+    
+    /// <summary>
+    /// A dictionary of any of the applicable tags that should also be applied as text labels in front of the post title
+    /// </summary>
+    public Dictionary<string, string> TitleTags { get; set; } = new();
 
-    public bool CreatePostBeforeApproval { get; set; } = false;
+    /// <summary>
+    /// A list of tags that will cause the forum post to be archived when applied.
+    /// Archived forum threads get deleted from the bots database
+    /// </summary>
+    public List<string> ArchivalTags { get; set; } = [];
+    
+    //public bool CreatePostBeforeApproval { get; set; } = false;
     
     public bool CheckInstallation(InstallationIdentifier installation)
     {
@@ -26,6 +47,14 @@ public sealed class GuildConfiguration
     {
         return LabelTags
             .Where(tag => labels.Contains(tag.Key))
+            .Select(tag => tag.Value)
+            .ToList();
+    }
+    
+    public List<string> GetTitleTags(IList<string> tags)
+    {
+        return TitleTags
+            .Where(tag => tags.Contains(tag.Key))
             .Select(tag => tag.Value)
             .ToList();
     }
